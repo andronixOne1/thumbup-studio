@@ -2322,22 +2322,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   // 1-Click Search Helper Buttons (Google Images & Bing)
-  const getActiveSearchQuery = () => {
-    const raw = ($("namesText").value || "").split("\n").map(l => l.trim()).filter(Boolean)[0] || "Gates of Olympus";
-    return `${raw} slot thumbnail wallpaper`;
-  };
-  if ($("btnOpenGoogleImages")) {
-    $("btnOpenGoogleImages").onclick = () => {
-      const q = encodeURIComponent(getActiveSearchQuery());
-      window.open(`https://www.google.com/search?tbm=isch&q=${q}`, "_blank");
-    };
-  }
-  if ($("btnOpenBingImages")) {
-    $("btnOpenBingImages").onclick = () => {
-      const q = encodeURIComponent(getActiveSearchQuery());
-      window.open(`https://www.bing.com/images/search?q=${q}`, "_blank");
-    };
-  }
+
 
   // Global Clipboard Image Paste (Ctrl+V from Google Images, Casinos, Discord)
   window.addEventListener("paste", async (e) => {

@@ -136,7 +136,9 @@
   function loadImage(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      if (!src.startsWith("data:") && !src.startsWith("./") && !src.startsWith("/")) {
+        img.crossOrigin = "anonymous";
+      }
       img.onload = () => resolve(img);
       img.onerror = (e) => reject(e);
       img.src = src;
@@ -340,59 +342,91 @@
     };
   }
 
-  // Authentic Casino Slot Game Thumbnail Database (Verified Slot Review Assets & CDN Thumbnails)
+  // Authentic Casino Slot Game Thumbnail Database (Pre-Bundled High-Res Assets, Zero CORS Issues)
   const GAME_ART_CATALOG = {
     "gates of olympus": [
-      "https://mediumrare.imgix.net/f38cea26bce753243bbdbc06ffb7a4b46972bc1254e41f3c79ace5fba9e6aae2?w=800&auto=format",
-      "https://www.bigwinboard.com/wp-content/uploads/2021/01/gates-of-olympus-feat-322x186.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2023/08/Gates-of-Olympus-1000-slot-feat.jpg",
-      "https://www.pragmaticplay.com/wp-content/uploads/2021/02/GOOL_EN_339x180.png"
+      "./assets/slots/gates-of-olympus/variant_1.jpg",
+      "./assets/slots/gates-of-olympus/variant_2.jpg",
+      "./assets/slots/gates-of-olympus/variant_3.jpg",
+      "./assets/slots/gates-of-olympus/variant_4.jpg"
     ],
     "sweet bonanza": [
-      "https://mediumrare.imgix.net/f95b3adf9d28d57496dd8da909c0cb97515104194924c5abb4cc9ad792f35dfe?w=800&auto=format",
-      "https://www.bigwinboard.com/wp-content/uploads/2019/02/sweetbonanza-feat.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2024/04/sweet-bonanza-1000-slot-feat.jpg",
-      "https://www.pragmaticplay.com/wp-content/uploads/2023/11/Sweet-Bonanza-Dice_339x180.png"
+      "./assets/slots/sweet-bonanza/variant_1.jpg",
+      "./assets/slots/sweet-bonanza/variant_2.jpg",
+      "./assets/slots/sweet-bonanza/variant_3.jpg",
+      "./assets/slots/sweet-bonanza/variant_4.jpg"
     ],
     "money train": [
-      "https://www.bigwinboard.com/wp-content/uploads/2023/05/money-train-4-slot-feat-3.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2022/07/money-train-3-slot-feat-322x186.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2020/09/money-train-2-feat-322x186.jpg"
+      "./assets/slots/money-train-4/variant_1.jpg",
+      "./assets/slots/money-train-4/variant_2.jpg",
+      "./assets/slots/money-train-4/variant_3.jpg",
+      "./assets/slots/money-train-4/variant_4.jpg"
     ],
     "rip city": [
-      "https://www.bigwinboard.com/wp-content/uploads/2022/11/rip-city-slot-feat-1-322x186.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2023/05/Chaos-Crew-2-slot-feat-300x173.jpg"
+      "./assets/slots/rip-city/variant_1.jpg",
+      "./assets/slots/rip-city/variant_2.jpg",
+      "./assets/slots/rip-city/variant_3.jpg",
+      "./assets/slots/rip-city/variant_4.jpg"
     ],
     "sugar rush": [
-      "https://www.bigwinboard.com/wp-content/uploads/2022/05/sugar-rush-slot-feat-322x186.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2024/02/sugar-rush-1000-slot-feat-322x186.jpg",
-      "https://www.pragmaticplay.com/wp-content/uploads/2024/02/Sugar-Rush-1000_339x180.png"
-    ],
-    "big bass": [
-      "https://www.bigwinboard.com/wp-content/uploads/2021/10/big-bass-bonanza-megaways-slot-pragmatic-feat.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2022/04/big-bass-splash-slot-feat-322x186.jpg"
-    ],
-    "chaos crew": [
-      "https://www.bigwinboard.com/wp-content/uploads/2023/05/Chaos-Crew-2-slot-feat-300x173.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2020/09/chaos-crew-feat-322x186.jpg"
+      "./assets/slots/sugar-rush/variant_1.jpg",
+      "./assets/slots/sugar-rush/variant_2.jpg",
+      "./assets/slots/sugar-rush/variant_3.jpg",
+      "./assets/slots/sugar-rush/variant_4.jpg"
     ],
     "wanted dead": [
-      "https://www.bigwinboard.com/wp-content/uploads/2021/09/wanted-dead-or-wild-slot-feat-322x186.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2023/04/dead-or-a-wild-slot-feat-322x186.jpg"
+      "./assets/slots/wanted-dead-or-a-wild/variant_1.jpg",
+      "./assets/slots/wanted-dead-or-a-wild/variant_2.jpg",
+      "./assets/slots/wanted-dead-or-a-wild/variant_3.jpg",
+      "./assets/slots/wanted-dead-or-a-wild/variant_4.jpg"
+    ],
+    "big bass": [
+      "./assets/slots/big-bass/variant_1.jpg",
+      "./assets/slots/big-bass/variant_2.jpg",
+      "./assets/slots/big-bass/variant_3.jpg",
+      "./assets/slots/big-bass/variant_4.jpg"
+    ],
+    "chaos crew": [
+      "./assets/slots/chaos-crew/variant_1.jpg",
+      "./assets/slots/chaos-crew/variant_2.jpg",
+      "./assets/slots/chaos-crew/variant_3.jpg",
+      "./assets/slots/chaos-crew/variant_4.jpg"
     ],
     "san quentin": [
-      "https://www.bigwinboard.com/wp-content/uploads/2021/01/san-quentin-record-win-feat-322x186.jpg",
-      "https://www.bigwinboard.com/wp-content/uploads/2021/01/san-quentin-slot-qa-feat-300x173.jpg"
+      "./assets/slots/san-quentin/variant_1.jpg",
+      "./assets/slots/san-quentin/variant_2.jpg",
+      "./assets/slots/san-quentin/variant_3.jpg",
+      "./assets/slots/san-quentin/variant_4.jpg"
     ],
     "tombstone": [
-      "https://www.bigwinboard.com/wp-content/uploads/2022/01/tombstone-rip-record-feat-1-322x186.jpg"
+      "./assets/slots/tombstone-rip/variant_1.jpg",
+      "./assets/slots/tombstone-rip/variant_2.jpg",
+      "./assets/slots/tombstone-rip/variant_3.jpg",
+      "./assets/slots/tombstone-rip/variant_4.jpg"
     ],
     "book of dead": [
-      "https://www.bigwinboard.com/wp-content/uploads/2019/06/book-of-dead-feat-322x186.jpg"
+      "./assets/slots/book-of-dead/variant_1.jpg",
+      "./assets/slots/book-of-dead/variant_2.jpg",
+      "./assets/slots/book-of-dead/variant_3.jpg",
+      "./assets/slots/book-of-dead/variant_4.jpg"
     ],
     "starlight princess": [
-      "https://www.pragmaticplay.com/wp-content/uploads/2021/09/Starlight_Princess_EN_339x180.png",
-      "https://www.pragmaticplay.com/wp-content/uploads/2023/10/Starlight-Princess-1000_339x180.png"
+      "./assets/slots/starlight-princess/variant_1.jpg",
+      "./assets/slots/starlight-princess/variant_2.jpg",
+      "./assets/slots/starlight-princess/variant_3.jpg",
+      "./assets/slots/starlight-princess/variant_4.jpg"
+    ],
+    "le bandit": [
+      "./assets/slots/le-bandit/variant_1.jpg",
+      "./assets/slots/le-bandit/variant_2.jpg",
+      "./assets/slots/le-bandit/variant_3.jpg",
+      "./assets/slots/le-bandit/variant_4.jpg"
+    ],
+    "dork unit": [
+      "./assets/slots/dork-unit/variant_1.jpg",
+      "./assets/slots/dork-unit/variant_2.jpg",
+      "./assets/slots/dork-unit/variant_3.jpg",
+      "./assets/slots/dork-unit/variant_4.jpg"
     ]
   };
 
@@ -498,12 +532,37 @@
       return [urlMatch[0]];
     }
 
-    const clean = rawQuery.toLowerCase().replace(/pragmatic play|hacksaw gaming|relax gaming|nolimit city|netent|playngo|slot|game|1000/g, "").trim();
+    const norm = rawQuery.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const clean = norm.replace(/\b(pragmatic play|hacksaw gaming|relax gaming|nolimit city|netent|playngo|play n go|slot|game|1000|megaways)\b/g, "").trim();
 
     // 2. Match against High-Res Real Game Catalog
     for (const [key, imgs] of Object.entries(GAME_ART_CATALOG)) {
-      if (clean.includes(key) || key.includes(clean)) {
+      if (clean.includes(key) || key.includes(clean) || norm.includes(key)) {
         return imgs;
+      }
+    }
+
+    // Secondary keyword matching for popular slots
+    const keywordMap = [
+      { words: ["olympus", "zeus", "gates"], key: "gates of olympus" },
+      { words: ["bonanza", "sweet"], key: "sweet bonanza" },
+      { words: ["money", "train"], key: "money train" },
+      { words: ["rip", "city", "roont", "ross"], key: "rip city" },
+      { words: ["sugar", "rush"], key: "sugar rush" },
+      { words: ["wanted", "dead", "wild"], key: "wanted dead" },
+      { words: ["bass", "splash", "fisherman"], key: "big bass" },
+      { words: ["chaos", "crew", "cranky"], key: "chaos crew" },
+      { words: ["quentin", "prison"], key: "san quentin" },
+      { words: ["tombstone"], key: "tombstone" },
+      { words: ["book", "dead", "wilde"], key: "book of dead" },
+      { words: ["starlight", "princess"], key: "starlight princess" },
+      { words: ["bandit", "raccoon", "smokey"], key: "le bandit" },
+      { words: ["dork", "hector"], key: "dork unit" }
+    ];
+
+    for (const entry of keywordMap) {
+      if (entry.words.some((w) => norm.split(" ").includes(w))) {
+        return GAME_ART_CATALOG[entry.key];
       }
     }
 
