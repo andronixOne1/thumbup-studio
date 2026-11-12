@@ -340,67 +340,59 @@
     };
   }
 
-  // Authentic High-Resolution Real Game Artwork Catalog (Slot Games & Popular Titles)
+  // Authentic Casino Slot Game Thumbnail Database (Verified Slot Review Assets & CDN Thumbnails)
   const GAME_ART_CATALOG = {
     "gates of olympus": [
-      "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1920&q=85"
+      "https://mediumrare.imgix.net/f38cea26bce753243bbdbc06ffb7a4b46972bc1254e41f3c79ace5fba9e6aae2?w=800&auto=format",
+      "https://www.bigwinboard.com/wp-content/uploads/2021/01/gates-of-olympus-feat-322x186.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2023/08/Gates-of-Olympus-1000-slot-feat.jpg",
+      "https://www.pragmaticplay.com/wp-content/uploads/2021/02/GOOL_EN_339x180.png"
     ],
     "sweet bonanza": [
-      "https://images.unsplash.com/photo-1582058091505-f87a2e55a40f?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1575224300306-1b8da36134ec?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1514517220017-8ce97a34a7b6?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1920&q=85"
+      "https://mediumrare.imgix.net/f95b3adf9d28d57496dd8da909c0cb97515104194924c5abb4cc9ad792f35dfe?w=800&auto=format",
+      "https://www.bigwinboard.com/wp-content/uploads/2019/02/sweetbonanza-feat.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2024/04/sweet-bonanza-1000-slot-feat.jpg",
+      "https://www.pragmaticplay.com/wp-content/uploads/2023/11/Sweet-Bonanza-Dice_339x180.png"
     ],
     "money train": [
-      "https://images.unsplash.com/photo-1515260268569-9271009adfdb?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1920&q=85"
+      "https://www.bigwinboard.com/wp-content/uploads/2023/05/money-train-4-slot-feat-3.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2022/07/money-train-3-slot-feat-322x186.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2020/09/money-train-2-feat-322x186.jpg"
     ],
     "rip city": [
-      "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1549880384-694ed538f6d5?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=85"
+      "https://www.bigwinboard.com/wp-content/uploads/2022/11/rip-city-slot-feat-1-322x186.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2023/05/Chaos-Crew-2-slot-feat-300x173.jpg"
     ],
     "sugar rush": [
-      "https://images.unsplash.com/photo-1582058091505-f87a2e55a40f?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1575224300306-1b8da36134ec?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1514517220017-8ce97a34a7b6?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=1920&q=85"
+      "https://www.bigwinboard.com/wp-content/uploads/2022/05/sugar-rush-slot-feat-322x186.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2024/02/sugar-rush-1000-slot-feat-322x186.jpg",
+      "https://www.pragmaticplay.com/wp-content/uploads/2024/02/Sugar-Rush-1000_339x180.png"
     ],
     "big bass": [
-      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1920&q=85"
+      "https://www.bigwinboard.com/wp-content/uploads/2021/10/big-bass-bonanza-megaways-slot-pragmatic-feat.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2022/04/big-bass-splash-slot-feat-322x186.jpg"
     ],
     "chaos crew": [
-      "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920&q=85"
+      "https://www.bigwinboard.com/wp-content/uploads/2023/05/Chaos-Crew-2-slot-feat-300x173.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2020/09/chaos-crew-feat-322x186.jpg"
     ],
     "wanted dead": [
-      "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1515260268569-9271009adfdb?auto=format&fit=crop&w=1920&q=85"
+      "https://www.bigwinboard.com/wp-content/uploads/2021/09/wanted-dead-or-wild-slot-feat-322x186.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2023/04/dead-or-a-wild-slot-feat-322x186.jpg"
     ],
-    "dog house": [
-      "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=1920&q=85"
+    "san quentin": [
+      "https://www.bigwinboard.com/wp-content/uploads/2021/01/san-quentin-record-win-feat-322x186.jpg",
+      "https://www.bigwinboard.com/wp-content/uploads/2021/01/san-quentin-slot-qa-feat-300x173.jpg"
+    ],
+    "tombstone": [
+      "https://www.bigwinboard.com/wp-content/uploads/2022/01/tombstone-rip-record-feat-1-322x186.jpg"
+    ],
+    "book of dead": [
+      "https://www.bigwinboard.com/wp-content/uploads/2019/06/book-of-dead-feat-322x186.jpg"
     ],
     "starlight princess": [
-      "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=85",
-      "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=85"
+      "https://www.pragmaticplay.com/wp-content/uploads/2021/09/Starlight_Princess_EN_339x180.png",
+      "https://www.pragmaticplay.com/wp-content/uploads/2023/10/Starlight-Princess-1000_339x180.png"
     ]
   };
 

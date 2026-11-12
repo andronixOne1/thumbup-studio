@@ -2321,6 +2321,81 @@ window.addEventListener("DOMContentLoaded", async () => {
     };
   }
 
+  // 1-Click Search Helper Buttons (Google Images & Bing)
+  const getActiveSearchQuery = () => {
+    const raw = ($("namesText").value || "").split("\n").map(l => l.trim()).filter(Boolean)[0] || "Gates of Olympus";
+    return `${raw} slot thumbnail wallpaper`;
+  };
+  if ($("btnOpenGoogleImages")) {
+    $("btnOpenGoogleImages").onclick = () => {
+      const q = encodeURIComponent(getActiveSearchQuery());
+      window.open(`https://www.google.com/search?tbm=isch&q=${q}`, "_blank");
+    };
+  }
+  if ($("btnOpenBingImages")) {
+    $("btnOpenBingImages").onclick = () => {
+      const q = encodeURIComponent(getActiveSearchQuery());
+      window.open(`https://www.bing.com/images/search?q=${q}`, "_blank");
+    };
+  }
+
+  // Global Clipboard Image Paste (Ctrl+V from Google Images, Casinos, Discord)
+  window.addEventListener("paste", async (e) => {
+    // If typing in input or textarea, let text paste normally
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    const items = Array.from(e.clipboardData?.items || []);
+    const imgItem = items.find(it => it.type.startsWith("image/"));
+    if (!imgItem) return;
+    e.preventDefault();
+    const file = imgItem.getAsFile();
+    if (!file) return;
+
+    const dataUrl = await new Promise(res => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.readAsDataURL(file);
+    });
+
+    const idx = clamp(selectedPreviewItemIndex, 0, Math.max(0, batchItems.length - 1));
+    if (batchItems.length > 0 && batchItems[idx]) {
+      batchItems[idx].originalBase64 = dataUrl;
+      batchItems[idx].cleanedBase64 = dataUrl;
+      batchItems[idx].outpaintedBase64 = null;
+      batchItems[idx].outpaintCropKey = null;
+      const cands = batchItems[idx].allCandidates || [];
+      const selIdx = clamp(batchItems[idx].selectedCandidateIdx || 0, 0, Math.max(0, cands.length - 1));
+      if (cands[selIdx]) {
+        cands[selIdx].originalBase64 = dataUrl;
+        cands[selIdx].cleanedBase64 = dataUrl;
+      }
+      setStatus(`✔ Pasted image from clipboard into "${batchItems[idx].game || "Thumbnail"}"!`);
+      await refreshActiveStagePreview();
+      renderLoadedThumbnailsList();
+      renderReviewGrid();
+    } else {
+      const newItem = {
+        id: `pasted-${Date.now()}`,
+        provider: "Pasted",
+        game: `Slot ${batchItems.length + 1}`,
+        originalBase64: dataUrl,
+        cleanedBase64: dataUrl,
+        adaptiveColor: "#2D9CDB",
+        textWasRemoved: false,
+        removedTextItems: [],
+        alternatives: [],
+        allCandidates: [{ originalBase64: dataUrl, cleanedBase64: dataUrl, adaptiveColor: "#2D9CDB" }],
+        selectedCandidateIdx: 0,
+        overrides: {}
+      };
+      batchItems.push(newItem);
+      selectedPreviewItemIndex = batchItems.length - 1;
+      setStatus(`✔ Pasted new slot thumbnail from clipboard into Studio!`);
+      await refreshActiveStagePreview();
+      renderLoadedThumbnailsList();
+      renderReviewGrid();
+    }
+  });
+
   $("btnFetchAndPrepare").onclick = () => runFetchAndPrepare();
   if ($("btnRunAiTextRemoval")) {
     $("btnRunAiTextRemoval").onclick = () => runAiTextRemovalOnItems(null);
