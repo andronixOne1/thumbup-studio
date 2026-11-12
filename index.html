@@ -189,14 +189,19 @@ Relax Gaming - Money Train 4
 Hacksaw Gaming - Rip City</textarea>
           </div>
 
-          <!-- METHOD 2: LOCAL FOLDER -->
+          <!-- METHOD 2: LOCAL FOLDER / DIRECT UPLOAD -->
           <div id="sourcePanelFolder" class="source-subpanel hidden">
-            <label>Choose Folder with Ready Thumbnails</label>
+            <label>Upload or Drop Ready Images</label>
             <div class="folder-picker-box">
-              <button id="btnSelectLocalFolder" type="button" class="primary-btn" style="height: 36px;">
-                📂 Browse & Select Thumbnail Folder…
+              <button id="btnSelectLocalFolder" type="button" class="primary-btn" style="height: 38px;">
+                📂 Choose Image Files from Computer…
               </button>
-              <div id="folderStats" class="folder-stats">No folder selected yet</div>
+              <div id="webDropZone" class="web-dropzone" style="border: 2px dashed rgba(45, 156, 219, 0.5); border-radius: 8px; padding: 18px 12px; text-align: center; background: rgba(45, 156, 219, 0.06); cursor: pointer; margin-top: 6px; transition: all 0.2s;">
+                <div style="font-size: 22px; margin-bottom: 2px;">📥</div>
+                <div style="font-weight: 700; color: #FFF; font-size: 12px;">Or Drag & Drop Images Here</div>
+                <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">Supports PNG, JPG, WebP (multiple files allowed)</div>
+              </div>
+              <div id="folderStats" class="folder-stats">No files loaded yet</div>
             </div>
           </div>
 

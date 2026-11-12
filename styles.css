@@ -24,10 +24,11 @@
 body {
   margin: 0;
   padding: 0;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: #131316;
 }
 
@@ -186,18 +187,15 @@ body {
 
 /* MAIN WIZARD STAGE AREA */
 .wizard-main {
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   padding: 20px 28px;
 }
 
 .step-view {
   display: none;
   flex: 1;
-  min-height: 0;
 }
 
 .step-view.active {
@@ -207,10 +205,10 @@ body {
 
 .stage-split {
   flex: 1;
-  min-height: 0;
   display: grid;
   grid-template-columns: 560px 1fr;
   gap: 24px;
+  align-items: start;
 }
 
 .preview-header-controls {
@@ -296,10 +294,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 22px 24px;
-  overflow-y: hidden;
+  overflow-y: visible;
   display: flex;
   flex-direction: column;
   transition: height 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .step-badge {
@@ -334,8 +333,11 @@ body {
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  min-height: 480px;
+  position: sticky;
+  top: 16px;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .preview-header {
@@ -1224,7 +1226,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* WIZARD FOOTER NAVIGATION */
 .wizard-footer {
-  height: 58px;
+  height: 60px;
   padding: 0 28px;
   background: #101013;
   border-top: 1px solid var(--border);
@@ -1232,6 +1234,10 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .nav-btn {
@@ -1452,3 +1458,53 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .empty-icon { font-size: 38px; margin-bottom: 8px; }
 .hidden { display: none !important; }
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #121216;
+}
+::-webkit-scrollbar-thumb {
+  background: #34343E;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4A4A58;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1240px) {
+  .stage-split {
+    grid-template-columns: 1fr;
+  }
+  .stage-preview-card {
+    position: static;
+    min-height: 420px;
+  }
+  .gallery-grid-4col {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .wizard-main {
+    padding: 12px 14px;
+  }
+  .gallery-grid-4col {
+    grid-template-columns: 1fr !important;
+  }
+  .app-header {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .wizard-stepper {
+    overflow-x: auto;
+    width: 100%;
+  }
+}

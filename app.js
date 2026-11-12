@@ -2283,8 +2283,43 @@ window.addEventListener("DOMContentLoaded", async () => {
     const res = await window.thumbupAPI.selectInputFolder();
     if (!res || res.canceled) return;
     localFolderFiles = (res.files || []).map(parseFolderFileEntry);
-    $("folderStats").textContent = `${localFolderFiles.length} image(s) ready from folder "${res.folderName}"`;
+    $("folderStats").textContent = `${localFolderFiles.length} image(s) ready (${res.folderName || res.folderPath})`;
   };
+
+  const dz = $("webDropZone");
+  if (dz) {
+    dz.onclick = () => $("btnSelectLocalFolder").click();
+    dz.ondragover = (e) => { e.preventDefault(); dz.style.borderColor = "var(--accent)"; dz.style.background = "rgba(45, 156, 219, 0.15)"; };
+    dz.ondragleave = (e) => { e.preventDefault(); dz.style.borderColor = "rgba(45, 156, 219, 0.5)"; dz.style.background = "rgba(45, 156, 219, 0.06)"; };
+    dz.ondrop = async (e) => {
+      e.preventDefault();
+      dz.style.borderColor = "rgba(45, 156, 219, 0.5)";
+      dz.style.background = "rgba(45, 156, 219, 0.06)";
+      const dtFiles = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith("image/"));
+      if (!dtFiles.length) return;
+      window._currentImportedFiles = window._currentImportedFiles || {};
+      const fileEntries = [];
+      for (const f of dtFiles) {
+        const dataUrl = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.readAsDataURL(f);
+        });
+        window._currentImportedFiles[f.name] = dataUrl;
+        fileEntries.push({
+          fullPath: f.name,
+          fileName: f.name,
+          relativePath: f.name,
+          name: f.name,
+          provider: "Upload",
+          game: f.name.replace(/\.[^/.]+$/, ""),
+          dataUrl
+        });
+      }
+      localFolderFiles = fileEntries.map(parseFolderFileEntry);
+      $("folderStats").textContent = `${localFolderFiles.length} image(s) dropped & ready!`;
+    };
+  }
 
   $("btnFetchAndPrepare").onclick = () => runFetchAndPrepare();
   if ($("btnRunAiTextRemoval")) {
