@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThumbUp Studio v2.0 — Step-by-Step Thumbnail Production Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Cinzel:wght@700&family=Inter:wght@400;600;700;800;900&family=Luckiest+Guy&family=Montserrat:wght@400;600;700;800;900&family=Orbitron:wght@700&family=Oswald:wght@400;600;700&family=Permanent+Marker&family=Poppins:wght@400;600;700;800;900&family=Righteous&family=Roboto+Condensed:wght@400;700&family=Russo+One&family=Teko:wght@700&family=Titan+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- TOP HEADER + WIZARD STEPPER -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">T</div>
+      <div>
+        <div class="brand-title">ThumbUp Studio <span class="badge-version">v2.0 Wizard</span></div>
+        <div class="brand-subtitle">Stage-by-Stage Scraper • AI Text Remover • Custom Crop & Radial Gradients</div>
+      </div>
+    </div>
+
+    <!-- STEPPER NAVIGATION -->
+    <nav class="wizard-stepper" id="wizardStepper">
+      <button type="button" class="step-tab active" data-step="1">
+        <span class="step-num">1</span>
+        <span class="step-label">Target Size</span>
+      </button>
+      <div class="step-connector"></div>
+      <button type="button" class="step-tab" data-step="2">
+        <span class="step-num">2</span>
+        <span class="step-label">Source & Scrape</span>
+      </button>
+      <div class="step-connector"></div>
+      <button type="button" class="step-tab" data-step="3">
+        <span class="step-num">3</span>
+        <span class="step-label">Crop & Corners</span>
+      </button>
+      <div class="step-connector"></div>
+      <button type="button" class="step-tab" data-step="4">
+        <span class="step-num">4</span>
+        <span class="step-label">Typography</span>
+      </button>
+      <div class="step-connector"></div>
+      <button type="button" class="step-tab" data-step="5">
+        <span class="step-num">5</span>
+        <span class="step-label">Gradients & Style</span>
+      </button>
+      <div class="step-connector"></div>
+      <button type="button" class="step-tab" data-step="6">
+        <span class="step-num">6</span>
+        <span class="step-label">Review (4-Grid)</span>
+      </button>
+      <div class="step-connector"></div>
+      <button type="button" class="step-tab" data-step="7">
+        <span class="step-num">7</span>
+        <span class="step-label">Save & Export</span>
+      </button>
+    </nav>
+
+    <div class="header-status">
+      <span class="status-dot ready" id="statusDot"></span>
+      <span id="statusText">Step 1 of 7 — Set Target Dimensions</span>
+    </div>
+  </header>
+
+  <!-- GLOBAL TOP PROGRESS BAR BANNER (VISIBLE ACROSS ANY STEP WHEN WORKING) -->
+  <div id="globalProgressBanner" class="global-progress-banner hidden">
+    <div class="global-progress-inner">
+      <div class="global-progress-text">
+        <span class="spinner-ring"></span>
+        <span id="globalProgressLabel">Processing…</span>
+      </div>
+      <div class="global-progress-stats">
+        <span id="globalProgressCount" class="prog-count-pill">0 / 0</span>
+        <span id="globalProgressPercent" class="prog-pct-pill">0%</span>
+      </div>
+    </div>
+    <div class="progress-track global-track">
+      <div id="globalProgressFill" class="progress-fill shimmer" style="width: 0%;"></div>
+    </div>
+  </div>
+
+  <!-- MAIN STAGE CONTAINER -->
+  <main class="wizard-main">
+
+    <!-- ==================== STEP 1: TARGET SIZE (W:H) ==================== -->
+    <section class="step-view active" id="stepView1">
+      <div class="stage-split">
+        <div class="stage-config-card">
+          <div class="step-badge">STEP 1 OF 7</div>
+          <h2>Enter Target Thumbnail Size (Width & Height)</h2>
+          <p class="step-desc">
+            Specify the exact pixel dimensions and aspect ratio your finished thumbnails should have.
+            The web scraper in Step 2 will also use this ratio to find matching images.
+          </p>
+
+          <div class="field" style="margin-top: 16px;">
+            <label>Saved Size & Style Preset</label>
+            <div class="preset-header">
+              <select id="sizePreset">
+                <option value="custom">Custom Configuration</option>
+                <option value="add-new">＋ Save current settings as preset…</option>
+              </select>
+              <button id="deletePreset" class="btn-danger" type="button" disabled title="Delete Preset">✖</button>
+            </div>
+            <div id="addPresetBox" class="add-preset-box hidden">
+              <div class="add-row">
+                <input id="presetName" type="text" placeholder="Enter Preset Name…" />
+                <button id="savePreset" class="secondary-btn" type="button">Save Preset</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top: 18px;">
+            <div class="field">
+              <label>Width (px)</label>
+              <input id="width" type="number" min="50" max="4000" value="210" class="input-lg" />
+            </div>
+            <div class="field">
+              <label>Height (px)</label>
+              <input id="height" type="number" min="50" max="4000" value="264" class="input-lg" />
+            </div>
+          </div>
+
+          <div class="quick-ratios" style="margin-top: 16px;">
+            <label class="muted-label">Quick Size Templates</label>
+            <div class="quick-ratio-pills">
+              <button type="button" class="secondary-btn quick-size-btn" data-w="210" data-h="264">210 × 264 (Portrait Slot)</button>
+              <button type="button" class="secondary-btn quick-size-btn" data-w="300" data-h="400">300 × 400 (3:4 Tall)</button>
+              <button type="button" class="secondary-btn quick-size-btn" data-w="300" data-h="300">300 × 300 (1:1 Square)</button>
+              <button type="button" class="secondary-btn quick-size-btn" data-w="400" data-h="225">400 × 225 (16:9 Wide)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-preview-card">
+          <div class="preview-header">
+            <span>Target Aspect Ratio Frame</span>
+            <span id="aspectRatioBadge" class="ratio-badge">210 × 264 (0.80:1 Tall)</span>
+          </div>
+          <div class="preview-stage-box">
+            <div id="step1FrameOutline" class="frame-outline-preview">
+              <span id="step1FrameDims">210 × 264 px</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 2: SOURCE METHOD & AI TEXT REMOVAL ==================== -->
+    <section class="step-view" id="stepView2">
+      <div class="stage-split">
+        <div class="stage-config-card">
+          <div class="step-badge">STEP 2 OF 7</div>
+          <h2>Choose Thumbnail Source & AI Text Removal</h2>
+          <p class="step-desc">
+            Select how to load your game thumbnails. Our local AI will automatically detect and erase flat white text from the images while preserving 3D logos and artwork.
+          </p>
+
+          <!-- 2 SOURCE METHOD CARDS -->
+          <div class="method-cards">
+            <div class="method-card active" id="methodCardScrape" data-mode="names">
+              <div class="method-icon">🌐</div>
+              <div class="method-info">
+                <div class="method-title">1. List of Games & Providers (Auto-Scrape)</div>
+                <div class="method-sub">Automatically search and download thumbnails matching your Step 1 ratio</div>
+              </div>
+            </div>
+
+            <div class="method-card" id="methodCardFolder" data-mode="folder">
+              <div class="method-icon">📂</div>
+              <div class="method-info">
+                <div class="method-title">2. Local Folder with Providers & Thumbnails</div>
+                <div class="method-sub">Load ready thumbnails from a folder (supports flat files or Provider subfolders)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- METHOD 1: GAME & PROVIDER LIST -->
+          <div id="sourcePanelScrape" class="source-subpanel">
+            <div class="label-row">
+              <label>Enter Games & Providers (one per line: <code>Provider - Game</code> or <code>(Provider) Game</code>)</label>
+              <button id="btnLoadSample" class="link-btn" type="button">Load Sample List</button>
+            </div>
+            <textarea id="namesText" style="height: 130px;" placeholder="Pragmatic Play - Gates of Olympus 1000&#10;Pragmatic Play - Sweet Bonanza&#10;Relax Gaming - Money Train 4&#10;Hacksaw Gaming - Rip City">Pragmatic Play - Gates of Olympus 1000
+Pragmatic Play - Sweet Bonanza
+Relax Gaming - Money Train 4
+Hacksaw Gaming - Rip City</textarea>
+          </div>
+
+          <!-- METHOD 2: LOCAL FOLDER -->
+          <div id="sourcePanelFolder" class="source-subpanel hidden">
+            <label>Choose Folder with Ready Thumbnails</label>
+            <div class="folder-picker-box">
+              <button id="btnSelectLocalFolder" type="button" class="primary-btn" style="height: 36px;">
+                📂 Browse & Select Thumbnail Folder…
+              </button>
+              <div id="folderStats" class="folder-stats">No folder selected yet</div>
+            </div>
+          </div>
+
+          <!-- STEP 1 OF SOURCE: FAST SCRAPE / LOAD BUTTON -->
+          <div style="margin-top: 14px;">
+            <button id="btnFetchAndPrepare" type="button" class="primary-btn">
+              ⚡ 1. Scrape / Load Thumbnails (Fast — No AI Delay)
+            </button>
+          </div>
+
+          <!-- STEP 2 OF SOURCE: TEXT REMOVAL (AUTO AI OR MANUAL BRUSH) -->
+          <div class="ai-section" style="margin-top: 14px;">
+            <div class="section-title ai-title">
+              <span>✨ 2. Remove Existing Text</span>
+              <span class="pill-ai">LaMa Generative Erase</span>
+            </div>
+            <div class="mode-toggle" id="textRemovalModeToggle" style="margin-bottom: 10px;">
+              <button type="button" class="active" data-trmode="auto">✨ Auto (AI Detect)</button>
+              <button type="button" data-trmode="manual">🖌️ Manual (Brush)</button>
+            </div>
+
+            <div id="autoRemovalPanel">
+              <p class="muted-label" style="margin: 0 0 8px 0; line-height: 1.45;">
+                AI finds and erases text automatically. Use the <strong>🖌️</strong> button on any card to touch up leftovers.
+              </p>
+              <div class="field">
+                <label>Removal Mode</label>
+                <select id="aiSensitivity">
+                  <option value="balanced" selected>Remove All Existing Text & Game Title Logos (Recommended)</option>
+                  <option value="aggressive">Aggressive (Remove All Text, Numbers & Badges)</option>
+                  <option value="strict">Flat White Text Only (Keep 3D Colorful Game Logos)</option>
+                </select>
+              </div>
+              <input id="removeFlatTextToggle" type="checkbox" class="hidden" />
+              <div style="margin-top: 10px;">
+                <button id="btnRunAiTextRemoval" type="button" class="primary-btn accent-purple">
+                  ✨ Run AI Text Removal on All Thumbnails
+                </button>
+              </div>
+            </div>
+
+            <div id="manualRemovalPanel" class="hidden">
+              <p class="muted-label" style="margin: 0; line-height: 1.45;">
+                Click <strong>🖌️ Brush Erase Text</strong> on a thumbnail (or click its image), paint over the text, then press <strong>Erase Brushed</strong>. Same brush as in the Review page.
+              </p>
+            </div>
+          </div>
+
+          <!-- STEP 2 PROGRESS BAR -->
+          <div id="progressBarWrap" class="progress-wrap hidden" style="margin-top: 12px; border-radius: 6px;">
+            <div class="progress-info">
+              <span class="progress-label-with-spinner">
+                <span class="spinner-ring sm"></span>
+                <span id="progressLabel">Processing thumbnails…</span>
+              </span>
+              <span class="progress-meta-right">
+                <span id="progressCount" class="prog-count-pill">0 / 0</span>
+                <span id="progressPercent">0%</span>
+              </span>
+            </div>
+            <div class="progress-track">
+              <div id="progressFill" class="progress-fill shimmer" style="width: 0%;"></div>
+            </div>
+            <div id="progressSubdetail" class="progress-subdetail">Initializing local AI OCR & scraper engine…</div>
+          </div>
+        </div>
+
+        <div class="stage-preview-card">
+          <div class="preview-header">
+            <span>Loaded Thumbnails (Use ◀ / ▶ Arrows to Switch Versions)</span>
+            <span id="loadedCountBadge" class="count-pill">0 games</span>
+          </div>
+          <div id="step2LoadedList" class="loaded-mini-grid">
+            <div class="empty-state-mini">
+              <div style="font-size: 30px; margin-bottom: 8px;">⚡</div>
+              <div>Click <strong>1. Scrape / Load Thumbnails</strong> to quickly fetch your games, switch versions with <strong>◀ / ▶</strong>, and click <strong>Run AI Text Removal</strong> when ready.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 3: CROPPING, FIT & CORNER ROUNDING ==================== -->
+    <section class="step-view" id="stepView3">
+      <div class="stage-split">
+        <div class="stage-config-card">
+          <div class="step-badge">STEP 3 OF 7</div>
+          <h2>Crop, Frame Fit & Corner Rounding</h2>
+          <p class="step-desc">
+            Configure how source images fit inside your target frame, which side/edge of the image to align to, and optional rounded corners.
+          </p>
+
+          <!-- FIT MODE -->
+          <div class="field" style="margin-top: 14px;">
+            <label>Frame Fit Mode</label>
+            <div class="mode-toggle" id="fitModeToggle">
+              <button type="button" class="fit-btn active" data-fit="fit-both">Fit Both (Horiz & Vert)</button>
+              <button type="button" class="fit-btn" data-fit="cover">Cover / Crop</button>
+              <button type="button" class="fit-btn" data-fit="fit-horizontal">Fit Horizontally</button>
+              <button type="button" class="fit-btn" data-fit="fit-vertical">Fit Vertically</button>
+            </div>
+            <input type="hidden" id="cropFitMode" value="fit-both" />
+          </div>
+
+          <!-- 9-POINT ALIGNMENT COMPASS -->
+          <div class="field" style="margin-top: 16px;">
+            <label>Image Alignment / Crop Anchor Side</label>
+            <div class="alignment-compass-row">
+              <div class="compass-grid" id="cropAlignCompass">
+                <button type="button" class="compass-btn" data-align="top-left" title="Align Top-Left">↖</button>
+                <button type="button" class="compass-btn" data-align="top" title="Align Top">↑ Top</button>
+                <button type="button" class="compass-btn" data-align="top-right" title="Align Top-Right">↗</button>
+                <button type="button" class="compass-btn" data-align="left" title="Align Left">← Left</button>
+                <button type="button" class="compass-btn active" data-align="center" title="Align Center">● Center</button>
+                <button type="button" class="compass-btn" data-align="right" title="Align Right">Right →</button>
+                <button type="button" class="compass-btn" data-align="bottom-left" title="Align Bottom-Left">↙</button>
+                <button type="button" class="compass-btn" data-align="bottom" title="Align Bottom">↓ Bottom</button>
+                <button type="button" class="compass-btn" data-align="bottom-right" title="Align Bottom-Right">↘</button>
+              </div>
+              <div class="crop-fine-sliders">
+                <div class="field">
+                  <label>Fine Horizontal Shift X (%)</label>
+                  <div class="slider-row">
+                    <input type="range" id="cropOffsetXSlider" min="-100" max="100" value="0" />
+                    <input type="number" id="cropOffsetX" class="slider-val" value="0" />
+                  </div>
+                </div>
+                <div class="field" style="margin-top: 8px;">
+                  <label>Fine Vertical Shift Y (%)</label>
+                  <div class="slider-row">
+                    <input type="range" id="cropOffsetYSlider" min="-100" max="100" value="0" />
+                    <input type="number" id="cropOffsetY" class="slider-val" value="0" />
+                  </div>
+                </div>
+                <div class="field" style="margin-top: 8px;">
+                  <label>Image Zoom (%)</label>
+                  <div class="slider-row">
+                    <input type="range" id="cropZoomSlider" min="50" max="250" value="100" />
+                    <input type="number" id="cropZoom" class="slider-val" value="100" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="cropAlign" value="center" />
+          </div>
+
+          <!-- AI FILL EMPTY SPACE (GENERATIVE OUTPAINT + MULTI-VARIANT) -->
+          <div class="ai-section" style="margin-top: 14px;">
+            <div class="section-title ai-title">
+              <span>✨ AI Fill Empty Space (Generative Outpaint)</span>
+              <span id="outpaintVariantBadge" class="pill-ai">Click to Generate</span>
+            </div>
+            <p class="muted-label" style="margin: 0 0 8px 0; line-height: 1.4;">
+              If scaling or moving the image leaves empty space between the image and the frame, click below to fill it with an AI-generated extension. <strong>Click again to generate different fill variants!</strong>
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button id="btnAiFillEmptySpace" type="button" class="primary-btn" style="flex: 1.4; background: linear-gradient(135deg, #9B51E0, #6B2CF5);">
+                ✨ Fill Empty Space (New Variant)
+              </button>
+              <button id="btnAiFillAllEmptySpace" type="button" class="secondary-btn" style="flex: 1;" title="Fill empty space across all loaded thumbnails">
+                ✨ Fill All Thumbnails
+              </button>
+              <button id="btnResetAiFill" type="button" class="secondary-btn" style="width: 80px;" title="Reset AI outpaint fill on current thumbnail">
+                ↺ Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- CORNER ROUNDING + PNG WARNING -->
+          <div class="corner-rounding-box" style="margin-top: 18px;">
+            <label class="check">
+              <input id="enableCornerRounding" type="checkbox" />
+              <span><strong>Enable Rounded Corners</strong> on Thumbnails</span>
+            </label>
+
+            <div id="cornerRoundingControls" class="hidden" style="margin-top: 10px;">
+              <div class="slider-row">
+                <label style="width: 110px;">Corner Radius (px)</label>
+                <input type="range" id="cornerRadiusSlider" min="1" max="120" value="20" />
+                <input type="number" id="cornerRadius" class="slider-val" value="20" />
+              </div>
+
+              <div class="png-warning-banner" id="pngWarningBanner">
+                <span class="warn-icon">⚠️</span>
+                <div>
+                  <strong>PNG Format Required:</strong> Rounded corner thumbnails use transparent corners and can only be saved as <strong>PNG</strong> (JPG does not support transparency).
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-preview-card">
+          <div class="preview-header">
+            <span>Live Crop & Corner Preview</span>
+            <div class="preview-header-controls">
+              <label class="check apply-all-check" title="When checked, edits made to settings apply to all thumbnails; when unchecked, edits apply only to the selected thumbnail">
+                <input type="checkbox" id="applyAllStep3" checked />
+                <span>Apply edit to all thumbnails</span>
+              </label>
+              <select id="previewSampleSelectStep3" class="preview-item-select"></select>
+            </div>
+          </div>
+          <div class="preview-stage-box">
+            <canvas id="previewCanvasStep3"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 4: TYPOGRAPHY & TEXT LAYOUT ==================== -->
+    <section class="step-view" id="stepView4">
+      <div class="stage-split">
+        <div class="stage-config-card">
+          <div class="step-badge">STEP 4 OF 7</div>
+          <h2>Typography, Spacing & Capitalization</h2>
+          <p class="step-desc">
+            Configure fonts, automatic or fixed font sizing, capitalization, text placement, and margins.
+          </p>
+
+          <div class="label-row" style="margin-top: 12px; margin-bottom: 4px;">
+            <span id="systemFontsCountBadge" class="pill-ai" style="background: rgba(45, 156, 219, 0.2); color: #64B5F6;">System Fonts Loaded</span>
+            <button id="btnRefreshSystemFonts" type="button" class="link-btn">🔄 Refresh Installed System Fonts</button>
+          </div>
+
+          <div class="grid3-custom" style="margin-top: 6px;">
+            <div class="field">
+              <label>Game Title Font</label>
+              <select id="gameFont"><option value="Montserrat|||Black">Montserrat Black</option></select>
+            </div>
+            <div class="field">
+              <label>Title Sizing</label>
+              <select id="gameSizingMode">
+                <option value="auto" selected>Auto Fit (Balanced 1–3 Lines)</option>
+                <option value="manual">Fixed Size</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Size (px)</label>
+              <input id="gameFontSize" type="number" min="8" max="300" value="32" disabled />
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top: 12px;">
+            <div class="field">
+              <label>Provider Font</label>
+              <select id="providerFont"><option value="Agency FB|||Regular">Agency FB Regular</option></select>
+            </div>
+            <div class="field">
+              <label>Provider Size (px)</label>
+              <input id="providerFontSize" type="number" min="6" max="200" value="16" />
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top: 12px;">
+            <div class="field">
+              <label>Text Block Alignment</label>
+              <select id="textPlacement">
+                <option value="down" selected>Anchor Bottom</option>
+                <option value="up">Anchor Top</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Provider Position</label>
+              <select id="providerPosition">
+                <option value="under" selected>Below Game Title</option>
+                <option value="over">Above Game Title</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="check-container" style="margin-top: 12px;">
+            <div class="grid2">
+              <label class="check"><input id="gameAllCaps" type="checkbox" checked /> Capitalize Game Title (ALL CAPS)</label>
+              <label class="check"><input id="providerAllCaps" type="checkbox" checked /> Capitalize Provider (ALL CAPS)</label>
+            </div>
+          </div>
+
+          <div class="sliders-compact" style="margin-top: 14px;">
+            <div class="field">
+              <label>Horizontal Margin X (%)</label>
+              <div class="slider-row">
+                <input type="range" id="marginXSlider" min="0" max="45" value="4" />
+                <input type="number" id="marginX" class="slider-val" value="4" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Vertical Margin Y (%)</label>
+              <div class="slider-row">
+                <input type="range" id="marginYSlider" min="0" max="45" value="6" />
+                <input type="number" id="marginY" class="slider-val" value="6" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Title–Provider Spacing (px)</label>
+              <div class="slider-row">
+                <input type="range" id="spacingSlider" min="0" max="60" value="7" />
+                <input type="number" id="spacing" class="slider-val" value="7" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Max Text Block Height (%)</label>
+              <div class="slider-row">
+                <input type="range" id="maxTextHeightSlider" min="10" max="85" value="40" />
+                <input type="number" id="maxTextHeight" class="slider-val" value="40" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-preview-card">
+          <div class="preview-header">
+            <span>Live Typography Preview</span>
+            <div class="preview-header-controls">
+              <label class="check apply-all-check" title="When checked, edits made to settings apply to all thumbnails; when unchecked, edits apply only to the selected thumbnail">
+                <input type="checkbox" id="applyAllStep4" checked />
+                <span>Apply edit to all thumbnails</span>
+              </label>
+              <select id="previewSampleSelectStep4" class="preview-item-select"></select>
+            </div>
+          </div>
+          <div class="preview-stage-box">
+            <canvas id="previewCanvasStep4"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 5: GRADIENTS (LINEAR / RADIAL 1-2 STEPS) & STYLES ==================== -->
+    <section class="step-view" id="stepView5">
+      <div class="stage-split">
+        <div class="stage-config-card">
+          <div class="step-badge">STEP 5 OF 7</div>
+          <h2>Gradients, Overlays & Background Styles</h2>
+          <p class="step-desc">
+            Choose your overlay style, and switch between standard <strong>Linear Gradient</strong> or <strong>Radial Gradient (with 1 or 2 Color Steps)</strong>.
+          </p>
+
+          <div class="field" style="margin-top: 14px;">
+            <label>Background Overlay Style</label>
+            <select id="overlayStyle">
+              <option value="dark-color" selected>Dark + Color Overlay (Stacked)</option>
+              <option value="adaptive" id="optAdaptive">Adaptive (Dark + Image Average Color)</option>
+              <option value="dark-only">Dark Overlay Only</option>
+              <option value="progressive-blur">Gradient Blur (Progressive)</option>
+              <option value="multi-color">Multiple Gradients (Randomized Palette)</option>
+              <option value="none">No Overlay (Image + Text Only)</option>
+            </select>
+          </div>
+
+          <!-- GRADIENT TYPE: LINEAR VS RADIAL -->
+          <div id="gradientShapeBox" class="check-container" style="margin-top: 12px;">
+            <div class="field">
+              <label>Gradient Shape</label>
+              <div class="mode-toggle" id="gradientTypeToggle">
+                <button type="button" class="grad-type-btn active" data-gtype="linear">Linear Gradient</button>
+                <button type="button" class="grad-type-btn" data-gtype="radial">Radial Gradient (Center + Outer)</button>
+              </div>
+              <input type="hidden" id="gradientType" value="linear" />
+            </div>
+
+            <!-- RADIAL GRADIENT SPECIFIC OPTIONS (CENTER & OUTER COLORS + CENTER ALIGNMENT) -->
+            <div id="radialStepsContainer" class="hidden" style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;">
+              <div class="grid2">
+                <div class="field">
+                  <label>Radial Outer Mode</label>
+                  <select id="radialColorSteps">
+                    <option value="2" selected>2 Colors (Center Color → Outer Color)</option>
+                    <option value="1">1 Color Fade (Center Color → Transparent)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Radial Radius Spread (%)</label>
+                  <div class="slider-row">
+                    <input type="range" id="radialRadiusSlider" min="20" max="180" value="80" />
+                    <input type="number" id="radialRadius" class="slider-val" value="80" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- OUTER RADIUS COLOR & OPACITY -->
+              <div id="radialSecondColorBox" style="margin-top: 10px;">
+                <label style="display:block; margin-bottom: 4px; color:#BBB; font-weight:600;">Outer Radius Color & Opacity (%)</label>
+                <div class="grid3-custom" style="align-items: center;">
+                  <input type="color" id="radialColor2" value="#0B0B14" />
+                  <input type="text" id="radialHex2" value="#0B0B14" style="text-transform: uppercase;" />
+                  <input type="number" id="radialOpacity2" value="75" min="0" max="100" title="Outer Radius Opacity (%)" />
+                </div>
+              </div>
+
+              <!-- RADIAL CENTER ALIGNMENT COMPASS + X/Y OFFSET -->
+              <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;">
+                <label style="display:block; margin-bottom: 6px; color:#BBB; font-weight:600;">Radial Gradient Center Alignment</label>
+                <div class="alignment-compass-row" style="padding: 8px;">
+                  <div class="compass-grid" id="radialAlignCompass">
+                    <button type="button" class="compass-btn" data-ralign="top-left">↖</button>
+                    <button type="button" class="compass-btn" data-ralign="top">↑ Top</button>
+                    <button type="button" class="compass-btn" data-ralign="top-right">↗</button>
+                    <button type="button" class="compass-btn" data-ralign="left">← Left</button>
+                    <button type="button" class="compass-btn" data-ralign="center">● Center</button>
+                    <button type="button" class="compass-btn" data-ralign="right">Right →</button>
+                    <button type="button" class="compass-btn" data-ralign="bottom-left">↙</button>
+                    <button type="button" class="compass-btn active" data-ralign="bottom">↓ Bottom</button>
+                    <button type="button" class="compass-btn" data-ralign="bottom-right">↘</button>
+                  </div>
+                  <div class="crop-fine-sliders">
+                    <div class="field">
+                      <label>Center X (%)</label>
+                      <div class="slider-row">
+                        <input type="range" id="radialCenterXSlider" min="0" max="100" value="50" />
+                        <input type="number" id="radialCenterX" class="slider-val" value="50" />
+                      </div>
+                    </div>
+                    <div class="field" style="margin-top: 6px;">
+                      <label>Center Y (%)</label>
+                      <div class="slider-row">
+                        <input type="range" id="radialCenterYSlider" min="0" max="100" value="85" />
+                        <input type="number" id="radialCenterY" class="slider-val" value="85" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <input type="hidden" id="radialAlign" value="bottom" />
+              </div>
+            </div>
+          </div>
+
+          <!-- DARK OPACITY -->
+          <div id="overlayStandardSettings" class="check-container" style="margin-top: 12px;">
+            <div class="slider-row">
+              <label style="width: 110px;">Dark Base Opacity</label>
+              <input type="range" id="standardOpacitySlider" min="0" max="100" value="40" />
+              <input type="number" id="standardOpacity" class="slider-val" value="40" />
+            </div>
+          </div>
+
+          <!-- PRIMARY COLOR PICKER (CENTER COLOR FOR RADIAL / MAIN COLOR FOR LINEAR) -->
+          <div id="overlayCustomSettings" class="check-container" style="margin-top: 12px;">
+            <label id="primaryColorLabel" style="color: #BBB; font-weight: 600;">Primary / Center Gradient Color</label>
+            <div class="grid2" style="align-items: center;">
+              <input type="color" id="customColor" value="#2D9CDB" />
+              <input type="text" id="customHex" value="#2D9CDB" placeholder="#HEX" style="text-transform: uppercase;" />
+            </div>
+          </div>
+
+          <!-- MULTI COLOR PALETTE -->
+          <div id="overlayMultiColorSettings" class="check-container hidden" style="margin-top: 12px;">
+            <label style="color: #BBB; font-weight: 600;">Randomized Gradient Palette</label>
+            <div id="multiColorContainer"></div>
+            <button id="btnAddMultiColor" type="button" class="secondary-btn full-width">＋ Add Another Color</button>
+          </div>
+
+          <!-- COLOR OPACITY SLIDER -->
+          <div id="overlayColorOpacityContainer" class="check-container" style="margin-top: 12px;">
+            <div class="slider-row">
+              <label style="width: 110px;">Center / Color Op.</label>
+              <input type="range" id="customOpacitySlider" min="0" max="100" value="83" />
+              <input type="number" id="customOpacity" class="slider-val" value="83" />
+            </div>
+          </div>
+
+          <!-- PROGRESSIVE BLUR SETTINGS -->
+          <div id="overlayBlurSettings" class="check-container hidden" style="margin-top: 12px;">
+            <div class="slider-row">
+              <label style="width: 110px;">Max Blur Radius (px)</label>
+              <input type="range" id="blurRadiusSlider" min="1" max="50" value="12" />
+              <input type="number" id="blurRadius" class="slider-val" value="12" />
+            </div>
+          </div>
+
+          <!-- NEW: INNER STROKE (SIZE, SOLID COLOR OR GRADIENT OPTIONS) -->
+          <div class="check-container" style="margin-top: 14px; border-color: rgba(45, 156, 219, 0.4);">
+            <label class="check">
+              <input id="enableInnerStroke" type="checkbox" />
+              <span><strong>Enable Inner Stroke (Frame Border)</strong></span>
+            </label>
+
+            <div id="innerStrokeControls" class="hidden" style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;">
+              <div class="grid2">
+                <div class="field">
+                  <label>Stroke Size (px)</label>
+                  <div class="slider-row">
+                    <input type="range" id="innerStrokeWidthSlider" min="1" max="30" value="3" />
+                    <input type="number" id="innerStrokeWidth" class="slider-val" value="3" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Stroke Style</label>
+                  <select id="innerStrokeType">
+                    <option value="solid">Solid Color</option>
+                    <option value="linear" selected>Linear Gradient</option>
+                    <option value="radial">Radial Gradient</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid3-custom" style="margin-top: 8px; align-items: center;">
+                <div class="field">
+                  <label>Stroke Color 1</label>
+                  <input type="color" id="innerStrokeColor1" value="#FFFFFF" />
+                </div>
+                <div class="field">
+                  <label>Hex 1</label>
+                  <input type="text" id="innerStrokeHex1" value="#FFFFFF" style="text-transform: uppercase;" />
+                </div>
+                <div class="field">
+                  <label>Op. 1 (%)</label>
+                  <input type="number" id="innerStrokeOpacity1" min="0" max="100" value="75" />
+                </div>
+              </div>
+
+              <div id="innerStrokeGradBox" style="margin-top: 8px;">
+                <div class="grid3-custom" style="align-items: center;">
+                  <div class="field">
+                    <label>Stroke Color 2</label>
+                    <input type="color" id="innerStrokeColor2" value="#2D9CDB" />
+                  </div>
+                  <div class="field">
+                    <label>Hex 2</label>
+                    <input type="text" id="innerStrokeHex2" value="#2D9CDB" style="text-transform: uppercase;" />
+                  </div>
+                  <div class="field">
+                    <label>Op. 2 (%)</label>
+                    <input type="number" id="innerStrokeOpacity2" min="0" max="100" value="15" />
+                  </div>
+                </div>
+
+                <div class="field" id="innerStrokeAngleField" style="margin-top: 8px;">
+                  <label>Stroke Gradient Direction</label>
+                  <select id="innerStrokeAngle">
+                    <option value="to-bottom" selected>Top → Bottom</option>
+                    <option value="to-top">Bottom → Top</option>
+                    <option value="to-right">Left → Right</option>
+                    <option value="to-br">Diagonal Top-Left → Bottom-Right ↘</option>
+                    <option value="to-tr">Diagonal Bottom-Left → Top-Right ↗</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-preview-card">
+          <div class="preview-header">
+            <span>Live Gradient & Style Preview</span>
+            <div class="preview-header-controls">
+              <label class="check apply-all-check" title="When checked, edits made to settings apply to all thumbnails; when unchecked, edits apply only to the selected thumbnail">
+                <input type="checkbox" id="applyAllStep5" checked />
+                <span>Apply edit to all thumbnails</span>
+              </label>
+              <select id="previewSampleSelectStep5" class="preview-item-select"></select>
+            </div>
+          </div>
+          <div class="preview-stage-box">
+            <canvas id="previewCanvasStep5"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 6: REVIEW ALL THUMBNAILS (4 PER ROW + INDIVIDUAL EDIT) ==================== -->
+    <section class="step-view" id="stepView6">
+      <div class="review-stage-layout">
+        <div class="review-toolbar">
+          <div class="toolbar-left">
+            <span class="step-badge" style="margin-bottom:0;">STEP 6 OF 7</span>
+            <h3 style="margin: 0; font-size: 14px; color: #FFF;">Review & Edit Individual Thumbnails</h3>
+            <span id="batchCountBadge" class="count-pill">0 thumbnails</span>
+            <div class="view-mode-pills" id="viewModeGroup">
+              <button type="button" class="view-pill active" data-view="final">Final Production</button>
+              <button type="button" class="view-pill" data-view="cleaned">AI Cleaned Base</button>
+              <button type="button" class="view-pill" data-view="original">Original Source</button>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button id="btnResetAllOverrides" type="button" class="secondary-btn" title="Reset individual thumbnail overrides back to global settings">
+              ↺ Reset Individual Overrides
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 6 REVIEW RENDERING PROGRESS BAR -->
+        <div id="reviewProgressWrap" class="progress-wrap review-progress hidden">
+          <div class="progress-info">
+            <span class="progress-label-with-spinner">
+              <span class="spinner-ring sm"></span>
+              <span id="reviewProgressLabel">Rendering production thumbnails…</span>
+            </span>
+            <span class="progress-meta-right">
+              <span id="reviewProgressCount" class="prog-count-pill">0 / 0</span>
+              <span id="reviewProgressPercent">0%</span>
+            </span>
+          </div>
+          <div class="progress-track">
+            <div id="reviewProgressFill" class="progress-fill shimmer" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- STRICT 4-COLUMN VERTICAL SCROLL GRID -->
+        <div id="galleryGrid" class="gallery-grid-4col">
+          <div class="empty-state">
+            <div class="empty-icon">🖼️</div>
+            <h3>No Thumbnails Loaded Yet</h3>
+            <p>Go to <strong>Step 2 (Source & Scrape)</strong> to scrape thumbnails from a game list or load a local folder.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 7: SAVE & EXPORT ==================== -->
+    <section class="step-view" id="stepView7">
+      <div class="stage-split">
+        <div class="stage-config-card">
+          <div class="step-badge">STEP 7 OF 7</div>
+          <h2>Save & Export Finished Thumbnails</h2>
+          <p class="step-desc">
+            Choose whether to save all thumbnails into a single flat folder or automatically organize them into provider subfolders.
+          </p>
+
+          <!-- SAVE STRUCTURE CARDS -->
+          <div class="method-cards" style="margin-top: 16px;">
+            <div class="method-card active" id="saveCardSingle" data-savemode="single">
+              <div class="method-icon">📁</div>
+              <div class="method-info">
+                <div class="method-title">Save in a Single Folder</div>
+                <div class="method-sub">Places all finished thumbnails directly inside your chosen output folder</div>
+              </div>
+            </div>
+
+            <div class="method-card" id="saveCardHierarchy" data-savemode="hierarchy">
+              <div class="method-icon">🗂️</div>
+              <div class="method-info">
+                <div class="method-title">Create Hierarchy Separated by Providers</div>
+                <div class="method-sub">Creates a dedicated subfolder for each Provider (e.g. <code>Output/Pragmatic Play/Sweet Bonanza.png</code>)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top: 16px;">
+            <div class="field">
+              <label>File Naming Format</label>
+              <select id="exportNaming">
+                <option value="provider-game" selected>Provider - Game Name</option>
+                <option value="game-only">Game Name Only</option>
+                <option value="brackets">(Provider) Game Name</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Image Format</label>
+              <select id="exportFormat">
+                <option value="png" selected>PNG (Lossless / Supports Rounded Corners)</option>
+                <option value="jpg" id="optFormatJpg">JPG (95% Quality)</option>
+                <option value="webp" id="optFormatWebp">WEBP (Optimized)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="exportPngLockNotice" class="png-warning-banner hidden" style="margin-top: 12px;">
+            <span class="warn-icon">⚠️</span>
+            <div>
+              <strong>PNG Locked:</strong> Because <strong>Rounded Corners</strong> are enabled on your thumbnails, export format is locked to <strong>PNG</strong> to preserve transparent corners.
+            </div>
+          </div>
+
+          <div class="field" style="margin-top: 16px;">
+            <label>Destination Folder</label>
+            <div class="dest-row">
+              <input id="exportDirInput" type="text" placeholder="Click Browse or Export to choose destination folder…" readonly />
+              <button id="btnPickExportDir" type="button" class="secondary-btn">Browse Folder…</button>
+            </div>
+          </div>
+
+          <div style="margin-top: 22px;">
+            <button id="btnExportAll" type="button" class="export-btn full-width" style="height: 44px; font-size: 13px;">
+              💾 Export All Thumbnails Now
+            </button>
+          </div>
+
+          <!-- STEP 7 EXPORT PROGRESS BAR -->
+          <div id="exportProgressWrap" class="progress-wrap hidden" style="margin-top: 12px; border-radius: 6px;">
+            <div class="progress-info">
+              <span class="progress-label-with-spinner">
+                <span class="spinner-ring sm"></span>
+                <span id="exportProgressLabel">Exporting thumbnails to disk…</span>
+              </span>
+              <span class="progress-meta-right">
+                <span id="exportProgressCount" class="prog-count-pill">0 / 0</span>
+                <span id="exportProgressPercent">0%</span>
+              </span>
+            </div>
+            <div class="progress-track">
+              <div id="exportProgressFill" class="progress-fill shimmer" style="width: 0%;"></div>
+            </div>
+            <div id="exportProgressSubdetail" class="progress-subdetail">Preparing output folders…</div>
+          </div>
+        </div>
+
+        <div class="stage-preview-card">
+          <div class="preview-header">
+            <span>Export Structure Preview</span>
+            <span id="exportSummaryBadge" class="ratio-badge">Single Folder • PNG</span>
+          </div>
+          <div id="exportTreePreview" class="export-tree-box"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM WIZARD NAVIGATION BAR -->
+  <footer class="wizard-footer">
+    <button id="btnPrevStep" type="button" class="secondary-btn nav-btn" disabled>
+      ← Previous Step
+    </button>
+    <div class="step-dots" id="stepDots">
+      <span class="dot active"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+    <button id="btnNextStep" type="button" class="primary-btn nav-btn">
+      Next Step: Source & Scrape →
+    </button>
+  </footer>
+
+  <!-- ==================== MODAL: INDIVIDUAL THUMBNAIL EDITOR (CROP, FONT, GRADIENT, AI ERASER) ==================== -->
+  <div id="inspectorModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalTitle">Edit Individual Thumbnail</h3>
+          <div class="modal-subtitle">Customize cropping, typography, gradient style, or brush-erase areas for this specific thumbnail only.</div>
+        </div>
+        <button id="btnCloseModal" type="button" class="btn-danger">✖</button>
+      </div>
+
+      <div class="modal-body-custom">
+        <!-- LEFT SIDE: LIVE INTERACTIVE PREVIEW / MAGIC ERASER STAGE -->
+        <div class="modal-preview-column">
+          <div class="modal-stage-tabs">
+            <button type="button" class="mstage-btn active" id="btnModalStageFinal">Live Final Preview</button>
+            <button type="button" class="mstage-btn" id="btnModalStageEraser">🖌️ AI Magic Eraser Brush</button>
+          </div>
+
+          <!-- FINAL LIVE PREVIEW CANVAS FOR THIS ITEM -->
+          <div id="modalFinalPreviewWrap" class="modal-canvas-center">
+            <canvas id="modalLiveFinalCanvas"></canvas>
+          </div>
+
+          <!-- MAGIC ERASER BRUSH CANVAS STACK (HIDDEN UNTIL SELECTED) -->
+          <div id="modalEraserWrap" class="eraser-stage-wrap hidden">
+            <div class="eraser-toolbar">
+              <label>Brush</label>
+              <input id="brushSizeSlider" type="range" min="4" max="60" value="18" style="width: 90px;" />
+              <button id="btnClearBrush" type="button" class="secondary-btn">Clear</button>
+              <button id="btnApplyBrushErase" type="button" class="primary-btn compact-btn">✨ Erase Brushed</button>
+              <button id="btnRevertToOriginal" type="button" class="secondary-btn">Revert Image</button>
+            </div>
+            <div id="modalEraserProgressWrap" class="progress-wrap hidden" style="margin-bottom: 10px; border-radius: 6px;">
+              <div class="progress-info">
+                <span class="progress-label-with-spinner">
+                  <span class="spinner-ring sm"></span>
+                  <span id="modalEraserProgressLabel">Running AI multi-scale inpainting on brushed region…</span>
+                </span>
+                <span id="modalEraserProgressPercent">50%</span>
+              </div>
+              <div class="progress-track">
+                <div id="modalEraserProgressFill" class="progress-fill shimmer indeterminate" style="width: 100%;"></div>
+              </div>
+            </div>
+            <div class="eraser-canvas-stack" id="eraserStack">
+              <canvas id="eraserImageCanvas"></canvas>
+              <canvas id="eraserMaskCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDE: PER-ITEM CUSTOMIZATION TABS (CROP, FONT, GRADIENT, IMAGE SWAP) -->
+        <div class="modal-controls-column">
+          <div class="item-edit-tabs">
+            <button type="button" class="iedit-tab active" data-itab="crop">1. Crop & Fit</button>
+            <button type="button" class="iedit-tab" data-itab="font">2. Typography</button>
+            <button type="button" class="iedit-tab" data-itab="grad">3. Gradient</button>
+            <button type="button" class="iedit-tab" data-itab="swap">4. Swap Image</button>
+          </div>
+
+          <!-- TAB 1: PER-ITEM CROP & FIT -->
+          <div class="iedit-pane active" id="itabPaneCrop">
+            <div class="field">
+              <label>Fit Mode (This Thumbnail)</label>
+              <select id="itemCropFitMode">
+                <option value="fit-both">Fit Both Horizontally & Vertically (Full Image)</option>
+                <option value="cover">Cover / Fill Frame (Crop Overflow)</option>
+                <option value="fit-horizontal">Fit Horizontally (Match Width)</option>
+                <option value="fit-vertical">Fit Vertically (Match Height)</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top: 10px;">
+              <label>Align Side / Anchor</label>
+              <select id="itemCropAlign">
+                <option value="center">Center</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+                <option value="top-left">Top-Left</option>
+                <option value="top-right">Top-Right</option>
+                <option value="bottom-left">Bottom-Left</option>
+                <option value="bottom-right">Bottom-Right</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top: 10px;">
+              <label>Horizontal Shift X (%)</label>
+              <input type="range" id="itemCropOffsetX" min="-100" max="100" value="0" />
+            </div>
+            <div class="field" style="margin-top: 10px;">
+              <label>Vertical Shift Y (%)</label>
+              <input type="range" id="itemCropOffsetY" min="-100" max="100" value="0" />
+            </div>
+            <div class="field" style="margin-top: 10px;">
+              <label>Zoom (%)</label>
+              <input type="range" id="itemCropZoom" min="50" max="250" value="100" />
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 6px;">
+              <button id="btnModalAiFillEmpty" type="button" class="primary-btn" style="flex: 1; background: linear-gradient(135deg, #9B51E0, #6B2CF5);">
+                ✨ Fill Empty Space with AI (Click for New Variant)
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 2: PER-ITEM TYPOGRAPHY -->
+          <div class="iedit-pane hidden" id="itabPaneFont">
+            <div class="grid2">
+              <div class="field">
+                <label>Provider Text</label>
+                <input id="modalProviderInput" type="text" />
+              </div>
+              <div class="field">
+                <label>Game Title</label>
+                <input id="modalGameInput" type="text" />
+              </div>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <div class="field">
+                <label>Game Font</label>
+                <select id="itemGameFont"></select>
+              </div>
+              <div class="field">
+                <label>Provider Font</label>
+                <select id="itemProviderFont"></select>
+              </div>
+            </div>
+            <div class="grid3-custom" style="margin-top: 8px;">
+              <div class="field">
+                <label>Sizing Mode</label>
+                <select id="itemGameSizingMode">
+                  <option value="auto">Auto Fit</option>
+                  <option value="manual">Fixed Size</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Title px</label>
+                <input id="itemGameFontSize" type="number" min="8" max="300" value="32" />
+              </div>
+              <div class="field">
+                <label>Prov px</label>
+                <input id="itemProviderFontSize" type="number" min="6" max="200" value="16" />
+              </div>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <div class="field">
+                <label>Text Placement</label>
+                <select id="itemTextPlacement">
+                  <option value="down">Anchor Bottom</option>
+                  <option value="up">Anchor Top</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Provider Stack</label>
+                <select id="itemProviderPosition">
+                  <option value="under">Below Title</option>
+                  <option value="over">Above Title</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <label class="check"><input id="itemGameAllCaps" type="checkbox" checked /> Caps Title</label>
+              <label class="check"><input id="itemProviderAllCaps" type="checkbox" checked /> Caps Provider</label>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <div class="field">
+                <label>Margin Y (%)</label>
+                <input id="itemMarginY" type="number" min="0" max="45" value="6" />
+              </div>
+              <div class="field">
+                <label>Spacing (px)</label>
+                <input id="itemSpacing" type="number" min="0" max="60" value="7" />
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: PER-ITEM GRADIENT & OVERLAY -->
+          <div class="iedit-pane hidden" id="itabPaneGrad">
+            <div class="field">
+              <label>Overlay Style</label>
+              <select id="itemOverlayStyle">
+                <option value="dark-color">Dark + Color Overlay</option>
+                <option value="adaptive">Adaptive (Image Average)</option>
+                <option value="dark-only">Dark Overlay Only</option>
+                <option value="progressive-blur">Progressive Blur</option>
+                <option value="multi-color">Multi-Color Palette</option>
+                <option value="none">No Overlay</option>
+              </select>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <div class="field">
+                <label>Gradient Type</label>
+                <select id="itemGradientType">
+                  <option value="linear">Linear Gradient</option>
+                  <option value="radial">Radial Gradient</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Radial Steps</label>
+                <select id="itemRadialSteps">
+                  <option value="1">1 Color Step</option>
+                  <option value="2">2 Color Steps</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <div class="field">
+                <label>Center / Color 1</label>
+                <input type="color" id="itemCustomColor" value="#2D9CDB" />
+              </div>
+              <div class="field">
+                <label>Center Opacity (%)</label>
+                <input type="number" id="itemCustomOpacity" min="0" max="100" value="83" />
+              </div>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <div class="field">
+                <label>Outer Radius Color 2</label>
+                <input type="color" id="itemRadialColor2" value="#0B0B14" />
+              </div>
+              <div class="field">
+                <label>Outer Opacity (%)</label>
+                <input type="number" id="itemRadialOpacity2" min="0" max="100" value="75" />
+              </div>
+            </div>
+            <div class="grid2" style="margin-top: 8px;">
+              <div class="field">
+                <label>Radial Center Align</label>
+                <select id="itemRadialAlign">
+                  <option value="bottom">Bottom</option>
+                  <option value="center">Center</option>
+                  <option value="top">Top</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                  <option value="top-left">Top-Left</option>
+                  <option value="top-right">Top-Right</option>
+                  <option value="bottom-left">Bottom-Left</option>
+                  <option value="bottom-right">Bottom-Right</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Dark Base Op. (%)</label>
+                <input type="number" id="itemStandardOpacity" min="0" max="100" value="40" />
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: SWAP SCRAPED IMAGE -->
+          <div class="iedit-pane hidden" id="itabPaneSwap">
+            <div class="section-title">Choose Alternative Scraped Image</div>
+            <div id="modalAlternativesList" class="alternatives-list"></div>
+          </div>
+
+          <div class="modal-footer-btns">
+            <button id="btnResetSingleItem" type="button" class="secondary-btn">Reset Item Overrides</button>
+            <button id="btnSaveModalChanges" type="button" class="export-btn">✔ Save Changes to Thumbnail</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: STEP 2 MANUAL BRUSH ERASER ==================== -->
+  <div id="brushModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="width: 820px; height: 600px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="brushModalTitle">Brush Erase Text</h3>
+          <div class="modal-subtitle">Paint over any text or logos on this thumbnail to erase them cleanly with AI.</div>
+        </div>
+        <button id="btnBrush2Close" type="button" class="btn-danger">✖</button>
+      </div>
+      <div class="modal-body-custom" style="grid-template-columns: 1fr; padding: 14px; background: #0D0D10;">
+        <div class="eraser-stage-wrap" style="height: 100%;">
+          <div class="eraser-toolbar">
+            <label style="color: #DDD; font-weight: 600;">Brush Size</label>
+            <input id="brush2SizeSlider" type="range" min="4" max="70" value="18" style="width: 120px;" />
+            <button id="btnBrush2Clear" type="button" class="secondary-btn">Clear Brush</button>
+            <button id="btnBrush2Apply" type="button" class="primary-btn compact-btn" style="background: linear-gradient(135deg, #9B51E0, #6B2CF5);">✨ Erase Brushed</button>
+            <button id="btnBrush2Revert" type="button" class="secondary-btn">Revert to Original</button>
+            <div style="flex: 1;"></div>
+            <button id="btnBrush2Done" type="button" class="export-btn compact-btn">✔ Done</button>
+          </div>
+          <div id="brush2ProgressWrap" class="progress-wrap hidden" style="margin-bottom: 10px; border-radius: 6px;">
+            <div class="progress-info">
+              <span class="progress-label-with-spinner">
+                <span class="spinner-ring sm"></span>
+                <span>Erasing brushed text with LaMa neural inpainting…</span>
+              </span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill shimmer indeterminate" style="width: 100%;"></div>
+            </div>
+          </div>
+          <div class="eraser-canvas-stack" id="brush2Stack" style="flex: 1; border: 1px solid var(--border); border-radius: 6px; background: #141418;">
+            <canvas id="brush2ImageCanvas"></canvas>
+            <canvas id="brush2MaskCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="web_adapter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
