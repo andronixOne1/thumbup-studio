@@ -2923,7 +2923,14 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     };
 
-    (baseFonts || []).forEach(addFontObj);
+    let fontsList = Array.isArray(baseFonts) ? baseFonts : (baseFonts && baseFonts.fonts ? baseFonts.fonts : []);
+    if (fontsList.length === 0 && window.thumbupAPI && typeof window.thumbupAPI.getSystemFonts === "function") {
+      try {
+        const fallback = await window.thumbupAPI.getSystemFonts();
+        fontsList = Array.isArray(fallback) ? fallback : (fallback && fallback.fonts ? fallback.fonts : []);
+      } catch (e) {}
+    }
+    fontsList.forEach(addFontObj);
 
     // Also query Chromium's Local Font Access API if available
     if (typeof window.queryLocalFonts === "function") {
@@ -2954,13 +2961,17 @@ window.addEventListener("DOMContentLoaded", async () => {
         selectEl.value = prevVal;
       } else if ([...selectEl.options].some((o) => o.value === defaultVal)) {
         selectEl.value = defaultVal;
+      } else if (selectEl.options.length > 0) {
+        selectEl.selectedIndex = 0;
       }
     };
 
     fillSelect($("gameFont"), "Montserrat|||Black");
-    fillSelect($("providerFont"), "Agency FB|||Regular");
+    fillSelect($("providerFont"), "Oswald|||Bold");
+    fillSelect($("itemGameFont"), "Montserrat|||Black");
+    fillSelect($("itemProviderFont"), "Oswald|||Bold");
     if ($("systemFontsCountBadge")) {
-      $("systemFontsCountBadge").textContent = `✔ ${sortedFonts.length} Installed System Font Styles Available`;
+      $("systemFontsCountBadge").textContent = `✔ ${sortedFonts.length} Fonts Available (Google Fonts & Local)`;
     }
   };
 
@@ -2985,13 +2996,14 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   if ($("btnRefreshSystemFonts")) {
     $("btnRefreshSystemFonts").onclick = async () => {
-      setStatus("Scanning installed system fonts…", true);
+      setStatus("Scanning available fonts…", true);
       const fRes = await window.thumbupAPI.getSystemFonts();
-      if (fRes && fRes.fonts) {
-        await populateAllFontDropdowns(fRes.fonts);
+      const list = Array.isArray(fRes) ? fRes : (fRes && fRes.fonts ? fRes.fonts : []);
+      if (list.length > 0) {
+        await populateAllFontDropdowns(list);
         await ensureSelectedFontsLoaded();
         await refreshActiveStagePreview();
-        setStatus(`Refreshed system fonts (${fRes.fonts.length} font styles found).`);
+        setStatus(`Refreshed fonts (${list.length} font styles ready).`);
       }
     };
   }
