@@ -72,6 +72,14 @@ function setStatus(text, isBusy = false) {
   $("statusDot").className = "status-dot " + (isBusy ? "busy" : "ready");
 }
 
+window.__onAiModelProgress = (msg) => {
+  const progSub = $("progressSubdetail");
+  if (progSub) progSub.textContent = msg;
+  const gLabel = $("globalProgressLabel");
+  if (gLabel) gLabel.textContent = msg;
+  setStatus(msg, true);
+};
+
 function setGlobalProgress({ show = true, label = "Processing…", current = 0, total = 0, percent = null }) {
   const banner = $("globalProgressBanner");
   if (!banner) return;
@@ -2354,9 +2362,9 @@ window.addEventListener("DOMContentLoaded", async () => {
         cands[selIdx].cleanedBase64 = dataUrl;
       }
       setStatus(`✔ Pasted image from clipboard into "${batchItems[idx].game || "Thumbnail"}"!`);
+      renderStep2LoadedMiniGrid();
+      populatePreviewSelects();
       await refreshActiveStagePreview();
-      renderLoadedThumbnailsList();
-      renderReviewGrid();
     } else {
       const newItem = {
         id: `pasted-${Date.now()}`,
@@ -2375,9 +2383,9 @@ window.addEventListener("DOMContentLoaded", async () => {
       batchItems.push(newItem);
       selectedPreviewItemIndex = batchItems.length - 1;
       setStatus(`✔ Pasted new slot thumbnail from clipboard into Studio!`);
+      renderStep2LoadedMiniGrid();
+      populatePreviewSelects();
       await refreshActiveStagePreview();
-      renderLoadedThumbnailsList();
-      renderReviewGrid();
     }
   });
 

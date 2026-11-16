@@ -92,10 +92,10 @@
           <h2>Enter Target Thumbnail Size (Width & Height)</h2>
           <p class="step-desc">
             Specify the exact pixel dimensions and aspect ratio your finished thumbnails should have.
-            The web scraper in Step 2 will also use this ratio to find matching images.
+            The scraper in Step 2 automatically prioritizes images matching this exact aspect ratio.
           </p>
 
-          <div class="field" style="margin-top: 16px;">
+          <div class="field" style="margin-top: 10px;">
             <label>Saved Size & Style Preset</label>
             <div class="preset-header">
               <select id="sizePreset">
@@ -112,7 +112,7 @@
             </div>
           </div>
 
-          <div class="grid2" style="margin-top: 18px;">
+          <div class="grid2" style="margin-top: 10px;">
             <div class="field">
               <label>Width (px)</label>
               <input id="width" type="number" min="50" max="4000" value="210" class="input-lg" />
@@ -123,13 +123,15 @@
             </div>
           </div>
 
-          <div class="quick-ratios" style="margin-top: 16px;">
-            <label class="muted-label">Quick Size Templates</label>
+          <div class="quick-ratios" style="margin-top: 10px;">
+            <label class="muted-label">Quick Aspect Ratio Templates</label>
             <div class="quick-ratio-pills">
               <button type="button" class="secondary-btn quick-size-btn" data-w="210" data-h="264">210 × 264 (Portrait Slot)</button>
               <button type="button" class="secondary-btn quick-size-btn" data-w="300" data-h="400">300 × 400 (3:4 Tall)</button>
               <button type="button" class="secondary-btn quick-size-btn" data-w="300" data-h="300">300 × 300 (1:1 Square)</button>
               <button type="button" class="secondary-btn quick-size-btn" data-w="400" data-h="225">400 × 225 (16:9 Wide)</button>
+              <button type="button" class="secondary-btn quick-size-btn" data-w="1280" data-h="720">1280 × 720 (HD 16:9)</button>
+              <button type="button" class="secondary-btn quick-size-btn" data-w="1920" data-h="1080">1920 × 1080 (Full HD)</button>
             </div>
           </div>
         </div>
@@ -155,7 +157,7 @@
           <div class="step-badge">STEP 2 OF 7</div>
           <h2>Choose Thumbnail Source & AI Text Removal</h2>
           <p class="step-desc">
-            Select how to load your game thumbnails. Our local AI will automatically detect and erase flat white text from the images while preserving 3D logos and artwork.
+            Scrape thumbnails prioritized for your Step 1 ratio or upload local images, then run local neural AI text removal.
           </p>
 
           <!-- 2 SOURCE METHOD CARDS -->
@@ -163,16 +165,16 @@
             <div class="method-card active" id="methodCardScrape" data-mode="names">
               <div class="method-icon">🌐</div>
               <div class="method-info">
-                <div class="method-title">1. List of Games & Providers (Auto-Scrape)</div>
-                <div class="method-sub">Automatically search and download thumbnails matching your Step 1 ratio</div>
+                <div class="method-title">1. Auto-Scrape Game List</div>
+                <div class="method-sub">Finds thumbnails matching Step 1 ratio</div>
               </div>
             </div>
 
             <div class="method-card" id="methodCardFolder" data-mode="folder">
               <div class="method-icon">📂</div>
               <div class="method-info">
-                <div class="method-title">2. Local Folder with Providers & Thumbnails</div>
-                <div class="method-sub">Load ready thumbnails from a folder (supports flat files or Provider subfolders)</div>
+                <div class="method-title">2. Local Images / Drop</div>
+                <div class="method-sub">Load PNG/JPG/WebP from computer</div>
               </div>
             </div>
           </div>
@@ -180,58 +182,52 @@
           <!-- METHOD 1: GAME & PROVIDER LIST -->
           <div id="sourcePanelScrape" class="source-subpanel">
             <div class="label-row">
-              <label>Enter Games & Providers (one per line: <code>Provider - Game</code> or <code>(Provider) Game</code>)</label>
+              <label>Games & Providers (<code>Provider - Game</code> or <code>(Provider) Game</code>)</label>
               <button id="btnLoadSample" class="link-btn" type="button">Load Sample List</button>
             </div>
-            <textarea id="namesText" style="height: 130px;" placeholder="Pragmatic Play - Gates of Olympus 1000&#10;Pragmatic Play - Sweet Bonanza&#10;Relax Gaming - Money Train 4&#10;Hacksaw Gaming - Rip City">Pragmatic Play - Gates of Olympus 1000
+            <textarea id="namesText" style="height: 76px;" placeholder="Pragmatic Play - Gates of Olympus 1000&#10;Pragmatic Play - Sweet Bonanza&#10;Relax Gaming - Money Train 4&#10;Hacksaw Gaming - Rip City">Pragmatic Play - Gates of Olympus 1000
 Pragmatic Play - Sweet Bonanza
 Relax Gaming - Money Train 4
 Hacksaw Gaming - Rip City</textarea>
 
-            <div style="margin-top: 6px; font-size: 11px; color: #A0AEC0; display: flex; align-items: center; gap: 6px;">
-              <span>🎰 Automatically searches authentic slot library & casino assets</span>
-              <span style="margin-left: auto;">💡 Press <strong>Ctrl+V</strong> anytime to paste a custom image</span>
+            <div style="margin-top: 4px; font-size: 10px; color: #94A3B8; display: flex; align-items: center; gap: 6px;">
+              <span>🎯 Ratio-prioritized slot scraper</span>
+              <span style="margin-left: auto;">💡 Press <strong>Ctrl+V</strong> anytime to paste image</span>
             </div>
           </div>
 
           <!-- METHOD 2: LOCAL FOLDER / DIRECT UPLOAD -->
           <div id="sourcePanelFolder" class="source-subpanel hidden">
-            <label>Upload or Drop Ready Images</label>
             <div class="folder-picker-box">
-              <button id="btnSelectLocalFolder" type="button" class="primary-btn" style="height: 38px;">
+              <button id="btnSelectLocalFolder" type="button" class="primary-btn" style="height: 31px;">
                 📂 Choose Image Files from Computer…
               </button>
-              <div id="webDropZone" class="web-dropzone" style="border: 2px dashed rgba(45, 156, 219, 0.5); border-radius: 8px; padding: 18px 12px; text-align: center; background: rgba(45, 156, 219, 0.06); cursor: pointer; margin-top: 6px; transition: all 0.2s;">
-                <div style="font-size: 22px; margin-bottom: 2px;">📥</div>
-                <div style="font-weight: 700; color: #FFF; font-size: 12px;">Or Drag & Drop Images Here</div>
-                <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">Supports PNG, JPG, WebP (multiple files allowed)</div>
+              <div id="webDropZone" class="web-dropzone" style="border: 1.5px dashed rgba(56, 189, 248, 0.45); border-radius: 7px; padding: 10px; text-align: center; background: rgba(56, 189, 248, 0.05); cursor: pointer; transition: all 0.2s;">
+                <div style="font-weight: 700; color: #FFF; font-size: 11px;">📥 Or Drag & Drop Images Here (PNG, JPG, WebP)</div>
               </div>
               <div id="folderStats" class="folder-stats">No files loaded yet</div>
             </div>
           </div>
 
           <!-- STEP 1 OF SOURCE: FAST SCRAPE / LOAD BUTTON -->
-          <div style="margin-top: 14px;">
+          <div style="margin-top: 8px;">
             <button id="btnFetchAndPrepare" type="button" class="primary-btn">
-              ⚡ 1. Scrape / Load Thumbnails (Fast — No AI Delay)
+              ⚡ 1. Scrape / Load Thumbnails (Ratio-Matched)
             </button>
           </div>
 
           <!-- STEP 2 OF SOURCE: TEXT REMOVAL (AUTO AI OR MANUAL BRUSH) -->
-          <div class="ai-section" style="margin-top: 14px;">
+          <div class="ai-section" style="margin-top: 8px;">
             <div class="section-title ai-title">
-              <span>✨ 2. Remove Existing Text</span>
-              <span class="pill-ai">LaMa Generative Erase</span>
+              <span>✨ 2. Local AI Text & Logo Removal</span>
+              <span class="pill-ai">PP-OCR + LaMa Neural</span>
             </div>
-            <div class="mode-toggle" id="textRemovalModeToggle" style="margin-bottom: 10px;">
+            <div class="mode-toggle" id="textRemovalModeToggle" style="margin-bottom: 6px;">
               <button type="button" class="active" data-trmode="auto">✨ Auto (AI Detect)</button>
               <button type="button" data-trmode="manual">🖌️ Manual (Brush)</button>
             </div>
 
             <div id="autoRemovalPanel">
-              <p class="muted-label" style="margin: 0 0 8px 0; line-height: 1.45;">
-                AI finds and erases text automatically. Use the <strong>🖌️</strong> button on any card to touch up leftovers.
-              </p>
               <div class="field">
                 <label>Removal Mode</label>
                 <select id="aiSensitivity">
@@ -241,7 +237,7 @@ Hacksaw Gaming - Rip City</textarea>
                 </select>
               </div>
               <input id="removeFlatTextToggle" type="checkbox" class="hidden" />
-              <div style="margin-top: 10px;">
+              <div style="margin-top: 6px;">
                 <button id="btnRunAiTextRemoval" type="button" class="primary-btn accent-purple">
                   ✨ Run AI Text Removal on All Thumbnails
                 </button>
@@ -249,14 +245,14 @@ Hacksaw Gaming - Rip City</textarea>
             </div>
 
             <div id="manualRemovalPanel" class="hidden">
-              <p class="muted-label" style="margin: 0; line-height: 1.45;">
-                Click <strong>🖌️ Brush Erase Text</strong> on a thumbnail (or click its image), paint over the text, then press <strong>Erase Brushed</strong>. Same brush as in the Review page.
+              <p class="muted-label" style="margin: 0; line-height: 1.35;">
+                Click <strong>🖌️ Brush Erase Text</strong> on any loaded card on the right, paint over the text, and press <strong>Erase Brushed</strong>.
               </p>
             </div>
           </div>
 
           <!-- STEP 2 PROGRESS BAR -->
-          <div id="progressBarWrap" class="progress-wrap hidden" style="margin-top: 12px; border-radius: 6px;">
+          <div id="progressBarWrap" class="progress-wrap hidden" style="margin-top: 8px; border-radius: 6px;">
             <div class="progress-info">
               <span class="progress-label-with-spinner">
                 <span class="spinner-ring sm"></span>
@@ -281,8 +277,8 @@ Hacksaw Gaming - Rip City</textarea>
           </div>
           <div id="step2LoadedList" class="loaded-mini-grid">
             <div class="empty-state-mini">
-              <div style="font-size: 30px; margin-bottom: 8px;">⚡</div>
-              <div>Click <strong>1. Scrape / Load Thumbnails</strong> to quickly fetch your games, switch versions with <strong>◀ / ▶</strong>, and click <strong>Run AI Text Removal</strong> when ready.</div>
+              <div style="font-size: 26px; margin-bottom: 6px;">⚡</div>
+              <div>Click <strong>1. Scrape / Load Thumbnails</strong> to fetch ratio-matched games, switch versions with <strong>◀ / ▶</strong>, and click <strong>Run AI Text Removal</strong> when ready.</div>
             </div>
           </div>
         </div>
@@ -294,26 +290,26 @@ Hacksaw Gaming - Rip City</textarea>
       <div class="stage-split">
         <div class="stage-config-card">
           <div class="step-badge">STEP 3 OF 7</div>
-          <h2>Crop, Frame Fit & Corner Rounding</h2>
+          <h2>Crop, Frame Fit, AI Extend & Corner Rounding</h2>
           <p class="step-desc">
-            Configure how source images fit inside your target frame, which side/edge of the image to align to, and optional rounded corners.
+            Adjust frame fit, alignment, and use local AI Generative Outpaint to fill empty margins or transparent PNG cutouts.
           </p>
 
           <!-- FIT MODE -->
-          <div class="field" style="margin-top: 14px;">
+          <div class="field" style="margin-top: 8px;">
             <label>Frame Fit Mode</label>
             <div class="mode-toggle" id="fitModeToggle">
-              <button type="button" class="fit-btn active" data-fit="fit-both">Fit Both (Horiz & Vert)</button>
+              <button type="button" class="fit-btn active" data-fit="fit-both">Fit Both (Full)</button>
               <button type="button" class="fit-btn" data-fit="cover">Cover / Crop</button>
-              <button type="button" class="fit-btn" data-fit="fit-horizontal">Fit Horizontally</button>
-              <button type="button" class="fit-btn" data-fit="fit-vertical">Fit Vertically</button>
+              <button type="button" class="fit-btn" data-fit="fit-horizontal">Fit Horiz</button>
+              <button type="button" class="fit-btn" data-fit="fit-vertical">Fit Vert</button>
             </div>
             <input type="hidden" id="cropFitMode" value="fit-both" />
           </div>
 
           <!-- 9-POINT ALIGNMENT COMPASS -->
-          <div class="field" style="margin-top: 16px;">
-            <label>Image Alignment / Crop Anchor Side</label>
+          <div class="field" style="margin-top: 8px;">
+            <label>Image Alignment & Fine Position</label>
             <div class="alignment-compass-row">
               <div class="compass-grid" id="cropAlignCompass">
                 <button type="button" class="compass-btn" data-align="top-left" title="Align Top-Left">↖</button>
@@ -328,20 +324,20 @@ Hacksaw Gaming - Rip City</textarea>
               </div>
               <div class="crop-fine-sliders">
                 <div class="field">
-                  <label>Fine Horizontal Shift X (%)</label>
+                  <label>Horizontal Shift X (%)</label>
                   <div class="slider-row">
                     <input type="range" id="cropOffsetXSlider" min="-100" max="100" value="0" />
                     <input type="number" id="cropOffsetX" class="slider-val" value="0" />
                   </div>
                 </div>
-                <div class="field" style="margin-top: 8px;">
-                  <label>Fine Vertical Shift Y (%)</label>
+                <div class="field" style="margin-top: 4px;">
+                  <label>Vertical Shift Y (%)</label>
                   <div class="slider-row">
                     <input type="range" id="cropOffsetYSlider" min="-100" max="100" value="0" />
                     <input type="number" id="cropOffsetY" class="slider-val" value="0" />
                   </div>
                 </div>
-                <div class="field" style="margin-top: 8px;">
+                <div class="field" style="margin-top: 4px;">
                   <label>Image Zoom (%)</label>
                   <div class="slider-row">
                     <input type="range" id="cropZoomSlider" min="50" max="250" value="100" />
@@ -353,38 +349,38 @@ Hacksaw Gaming - Rip City</textarea>
             <input type="hidden" id="cropAlign" value="center" />
           </div>
 
-          <!-- AI FILL EMPTY SPACE (GENERATIVE OUTPAINT + MULTI-VARIANT) -->
-          <div class="ai-section" style="margin-top: 14px;">
+          <!-- AI FILL EMPTY SPACE (GENERATIVE OUTPAINT + TRANSPARENT PNG FILL) -->
+          <div class="ai-section" style="margin-top: 8px;">
             <div class="section-title ai-title">
-              <span>✨ AI Fill Empty Space (Generative Outpaint)</span>
+              <span>✨ AI Fill Empty Space & Transparent PNG Areas</span>
               <span id="outpaintVariantBadge" class="pill-ai">Click to Generate</span>
             </div>
-            <p class="muted-label" style="margin: 0 0 8px 0; line-height: 1.4;">
-              If scaling or moving the image leaves empty space between the image and the frame, click below to fill it with an AI-generated extension. <strong>Click again to generate different fill variants!</strong>
+            <p class="muted-label" style="margin: 0 0 6px 0; line-height: 1.35;">
+              Fills empty frame margins <strong>and transparent PNG cutouts</strong> with a seamless LaMa AI scene extension. Click again for new variants!
             </p>
-            <div style="display: flex; gap: 8px;">
-              <button id="btnAiFillEmptySpace" type="button" class="primary-btn" style="flex: 1.4; background: linear-gradient(135deg, #9B51E0, #6B2CF5);">
+            <div style="display: flex; gap: 6px;">
+              <button id="btnAiFillEmptySpace" type="button" class="primary-btn accent-purple" style="flex: 1.4;">
                 ✨ Fill Empty Space (New Variant)
               </button>
               <button id="btnAiFillAllEmptySpace" type="button" class="secondary-btn" style="flex: 1;" title="Fill empty space across all loaded thumbnails">
-                ✨ Fill All Thumbnails
+                ✨ Fill All
               </button>
-              <button id="btnResetAiFill" type="button" class="secondary-btn" style="width: 80px;" title="Reset AI outpaint fill on current thumbnail">
+              <button id="btnResetAiFill" type="button" class="secondary-btn" style="width: 72px;" title="Reset AI outpaint fill on current thumbnail">
                 ↺ Reset
               </button>
             </div>
           </div>
 
           <!-- CORNER ROUNDING + PNG WARNING -->
-          <div class="corner-rounding-box" style="margin-top: 18px;">
+          <div class="corner-rounding-box" style="margin-top: 8px;">
             <label class="check">
               <input id="enableCornerRounding" type="checkbox" />
               <span><strong>Enable Rounded Corners</strong> on Thumbnails</span>
             </label>
 
-            <div id="cornerRoundingControls" class="hidden" style="margin-top: 10px;">
+            <div id="cornerRoundingControls" class="hidden" style="margin-top: 6px;">
               <div class="slider-row">
-                <label style="width: 110px;">Corner Radius (px)</label>
+                <label style="width: 105px;">Corner Radius (px)</label>
                 <input type="range" id="cornerRadiusSlider" min="1" max="120" value="20" />
                 <input type="number" id="cornerRadius" class="slider-val" value="20" />
               </div>
@@ -392,7 +388,7 @@ Hacksaw Gaming - Rip City</textarea>
               <div class="png-warning-banner" id="pngWarningBanner">
                 <span class="warn-icon">⚠️</span>
                 <div>
-                  <strong>PNG Format Required:</strong> Rounded corner thumbnails use transparent corners and can only be saved as <strong>PNG</strong> (JPG does not support transparency).
+                  <strong>PNG Required:</strong> Rounded corners use transparency and automatically export as <strong>PNG</strong>.
                 </div>
               </div>
             </div>
@@ -427,12 +423,12 @@ Hacksaw Gaming - Rip City</textarea>
             Configure fonts, automatic or fixed font sizing, capitalization, text placement, and margins.
           </p>
 
-          <div class="label-row" style="margin-top: 12px; margin-bottom: 4px;">
-            <span id="systemFontsCountBadge" class="pill-ai" style="background: rgba(45, 156, 219, 0.2); color: #64B5F6;">System Fonts Loaded</span>
-            <button id="btnRefreshSystemFonts" type="button" class="link-btn">🔄 Refresh Installed System Fonts</button>
+          <div class="label-row" style="margin-top: 8px; margin-bottom: 2px;">
+            <span id="systemFontsCountBadge" class="pill-ai" style="background: rgba(56, 189, 248, 0.16); color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);">System Fonts Loaded</span>
+            <button id="btnRefreshSystemFonts" type="button" class="link-btn">🔄 Refresh Fonts</button>
           </div>
 
-          <div class="grid3-custom" style="margin-top: 6px;">
+          <div class="grid3-custom" style="margin-top: 4px;">
             <div class="field">
               <label>Game Title Font</label>
               <select id="gameFont"><option value="Montserrat|||Black">Montserrat Black</option></select>
@@ -440,7 +436,7 @@ Hacksaw Gaming - Rip City</textarea>
             <div class="field">
               <label>Title Sizing</label>
               <select id="gameSizingMode">
-                <option value="auto" selected>Auto Fit (Balanced 1–3 Lines)</option>
+                <option value="auto" selected>Auto Fit (1–3 Lines)</option>
                 <option value="manual">Fixed Size</option>
               </select>
             </div>
@@ -450,10 +446,10 @@ Hacksaw Gaming - Rip City</textarea>
             </div>
           </div>
 
-          <div class="grid2" style="margin-top: 12px;">
+          <div class="grid2" style="margin-top: 8px;">
             <div class="field">
               <label>Provider Font</label>
-              <select id="providerFont"><option value="Agency FB|||Regular">Agency FB Regular</option></select>
+              <select id="providerFont"><option value="Oswald|||Bold">Oswald Bold</option></select>
             </div>
             <div class="field">
               <label>Provider Size (px)</label>
@@ -461,7 +457,7 @@ Hacksaw Gaming - Rip City</textarea>
             </div>
           </div>
 
-          <div class="grid2" style="margin-top: 12px;">
+          <div class="grid2" style="margin-top: 8px;">
             <div class="field">
               <label>Text Block Alignment</label>
               <select id="textPlacement">
@@ -478,14 +474,14 @@ Hacksaw Gaming - Rip City</textarea>
             </div>
           </div>
 
-          <div class="check-container" style="margin-top: 12px;">
+          <div class="check-container" style="margin-top: 8px;">
             <div class="grid2">
-              <label class="check"><input id="gameAllCaps" type="checkbox" checked /> Capitalize Game Title (ALL CAPS)</label>
-              <label class="check"><input id="providerAllCaps" type="checkbox" checked /> Capitalize Provider (ALL CAPS)</label>
+              <label class="check"><input id="gameAllCaps" type="checkbox" checked /> ALL CAPS Game Title</label>
+              <label class="check"><input id="providerAllCaps" type="checkbox" checked /> ALL CAPS Provider</label>
             </div>
           </div>
 
-          <div class="sliders-compact" style="margin-top: 14px;">
+          <div class="sliders-compact" style="margin-top: 8px;">
             <div class="field">
               <label>Horizontal Margin X (%)</label>
               <div class="slider-row">
@@ -540,12 +536,12 @@ Hacksaw Gaming - Rip City</textarea>
       <div class="stage-split">
         <div class="stage-config-card">
           <div class="step-badge">STEP 5 OF 7</div>
-          <h2>Gradients, Overlays & Background Styles</h2>
+          <h2>Gradients, Overlays & Inner Frame Stroke</h2>
           <p class="step-desc">
-            Choose your overlay style, and switch between standard <strong>Linear Gradient</strong> or <strong>Radial Gradient (with 1 or 2 Color Steps)</strong>.
+            Choose your overlay style, Linear or Radial gradient, and optional Inner Stroke border.
           </p>
 
-          <div class="field" style="margin-top: 14px;">
+          <div class="field" style="margin-top: 8px;">
             <label>Background Overlay Style</label>
             <select id="overlayStyle">
               <option value="dark-color" selected>Dark + Color Overlay (Stacked)</option>
@@ -558,7 +554,7 @@ Hacksaw Gaming - Rip City</textarea>
           </div>
 
           <!-- GRADIENT TYPE: LINEAR VS RADIAL -->
-          <div id="gradientShapeBox" class="check-container" style="margin-top: 12px;">
+          <div id="gradientShapeBox" class="check-container" style="margin-top: 7px;">
             <div class="field">
               <label>Gradient Shape</label>
               <div class="mode-toggle" id="gradientTypeToggle">
@@ -569,13 +565,13 @@ Hacksaw Gaming - Rip City</textarea>
             </div>
 
             <!-- RADIAL GRADIENT SPECIFIC OPTIONS (CENTER & OUTER COLORS + CENTER ALIGNMENT) -->
-            <div id="radialStepsContainer" class="hidden" style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;">
+            <div id="radialStepsContainer" class="hidden" style="margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px;">
               <div class="grid2">
                 <div class="field">
                   <label>Radial Outer Mode</label>
                   <select id="radialColorSteps">
-                    <option value="2" selected>2 Colors (Center Color → Outer Color)</option>
-                    <option value="1">1 Color Fade (Center Color → Transparent)</option>
+                    <option value="2" selected>2 Colors (Center → Outer)</option>
+                    <option value="1">1 Color (Center → Transparent)</option>
                   </select>
                 </div>
                 <div class="field">
@@ -588,8 +584,8 @@ Hacksaw Gaming - Rip City</textarea>
               </div>
 
               <!-- OUTER RADIUS COLOR & OPACITY -->
-              <div id="radialSecondColorBox" style="margin-top: 10px;">
-                <label style="display:block; margin-bottom: 4px; color:#BBB; font-weight:600;">Outer Radius Color & Opacity (%)</label>
+              <div id="radialSecondColorBox" style="margin-top: 6px;">
+                <label style="display:block; margin-bottom: 2px; color:#CBD5E1; font-weight:600; font-size:10.5px;">Outer Radius Color & Opacity (%)</label>
                 <div class="grid3-custom" style="align-items: center;">
                   <input type="color" id="radialColor2" value="#0B0B14" />
                   <input type="text" id="radialHex2" value="#0B0B14" style="text-transform: uppercase;" />
@@ -598,9 +594,9 @@ Hacksaw Gaming - Rip City</textarea>
               </div>
 
               <!-- RADIAL CENTER ALIGNMENT COMPASS + X/Y OFFSET -->
-              <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;">
-                <label style="display:block; margin-bottom: 6px; color:#BBB; font-weight:600;">Radial Gradient Center Alignment</label>
-                <div class="alignment-compass-row" style="padding: 8px;">
+              <div style="margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px;">
+                <label style="display:block; margin-bottom: 4px; color:#CBD5E1; font-weight:600; font-size:10.5px;">Radial Gradient Center Alignment</label>
+                <div class="alignment-compass-row" style="padding: 6px;">
                   <div class="compass-grid" id="radialAlignCompass">
                     <button type="button" class="compass-btn" data-ralign="top-left">↖</button>
                     <button type="button" class="compass-btn" data-ralign="top">↑ Top</button>
@@ -620,7 +616,7 @@ Hacksaw Gaming - Rip City</textarea>
                         <input type="number" id="radialCenterX" class="slider-val" value="50" />
                       </div>
                     </div>
-                    <div class="field" style="margin-top: 6px;">
+                    <div class="field" style="margin-top: 4px;">
                       <label>Center Y (%)</label>
                       <div class="slider-row">
                         <input type="range" id="radialCenterYSlider" min="0" max="100" value="85" />
@@ -635,17 +631,17 @@ Hacksaw Gaming - Rip City</textarea>
           </div>
 
           <!-- DARK OPACITY -->
-          <div id="overlayStandardSettings" class="check-container" style="margin-top: 12px;">
+          <div id="overlayStandardSettings" class="check-container" style="margin-top: 7px;">
             <div class="slider-row">
-              <label style="width: 110px;">Dark Base Opacity</label>
+              <label style="width: 105px;">Dark Base Opacity</label>
               <input type="range" id="standardOpacitySlider" min="0" max="100" value="40" />
               <input type="number" id="standardOpacity" class="slider-val" value="40" />
             </div>
           </div>
 
           <!-- PRIMARY COLOR PICKER (CENTER COLOR FOR RADIAL / MAIN COLOR FOR LINEAR) -->
-          <div id="overlayCustomSettings" class="check-container" style="margin-top: 12px;">
-            <label id="primaryColorLabel" style="color: #BBB; font-weight: 600;">Primary / Center Gradient Color</label>
+          <div id="overlayCustomSettings" class="check-container" style="margin-top: 7px;">
+            <label id="primaryColorLabel" style="color: #CBD5E1; font-weight: 600; font-size: 10.5px;">Primary / Center Gradient Color</label>
             <div class="grid2" style="align-items: center;">
               <input type="color" id="customColor" value="#2D9CDB" />
               <input type="text" id="customHex" value="#2D9CDB" placeholder="#HEX" style="text-transform: uppercase;" />
@@ -653,38 +649,38 @@ Hacksaw Gaming - Rip City</textarea>
           </div>
 
           <!-- MULTI COLOR PALETTE -->
-          <div id="overlayMultiColorSettings" class="check-container hidden" style="margin-top: 12px;">
-            <label style="color: #BBB; font-weight: 600;">Randomized Gradient Palette</label>
+          <div id="overlayMultiColorSettings" class="check-container hidden" style="margin-top: 7px;">
+            <label style="color: #CBD5E1; font-weight: 600; font-size: 10.5px;">Randomized Gradient Palette</label>
             <div id="multiColorContainer"></div>
             <button id="btnAddMultiColor" type="button" class="secondary-btn full-width">＋ Add Another Color</button>
           </div>
 
           <!-- COLOR OPACITY SLIDER -->
-          <div id="overlayColorOpacityContainer" class="check-container" style="margin-top: 12px;">
+          <div id="overlayColorOpacityContainer" class="check-container" style="margin-top: 7px;">
             <div class="slider-row">
-              <label style="width: 110px;">Center / Color Op.</label>
+              <label style="width: 105px;">Center / Color Op.</label>
               <input type="range" id="customOpacitySlider" min="0" max="100" value="83" />
               <input type="number" id="customOpacity" class="slider-val" value="83" />
             </div>
           </div>
 
           <!-- PROGRESSIVE BLUR SETTINGS -->
-          <div id="overlayBlurSettings" class="check-container hidden" style="margin-top: 12px;">
+          <div id="overlayBlurSettings" class="check-container hidden" style="margin-top: 7px;">
             <div class="slider-row">
-              <label style="width: 110px;">Max Blur Radius (px)</label>
+              <label style="width: 105px;">Max Blur Radius (px)</label>
               <input type="range" id="blurRadiusSlider" min="1" max="50" value="12" />
               <input type="number" id="blurRadius" class="slider-val" value="12" />
             </div>
           </div>
 
-          <!-- NEW: INNER STROKE (SIZE, SOLID COLOR OR GRADIENT OPTIONS) -->
-          <div class="check-container" style="margin-top: 14px; border-color: rgba(45, 156, 219, 0.4);">
+          <!-- INNER STROKE (SIZE, SOLID COLOR OR GRADIENT OPTIONS) -->
+          <div class="check-container" style="margin-top: 7px; border-color: rgba(56, 189, 248, 0.35);">
             <label class="check">
               <input id="enableInnerStroke" type="checkbox" />
               <span><strong>Enable Inner Stroke (Frame Border)</strong></span>
             </label>
 
-            <div id="innerStrokeControls" class="hidden" style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;">
+            <div id="innerStrokeControls" class="hidden" style="margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px;">
               <div class="grid2">
                 <div class="field">
                   <label>Stroke Size (px)</label>
@@ -703,7 +699,7 @@ Hacksaw Gaming - Rip City</textarea>
                 </div>
               </div>
 
-              <div class="grid3-custom" style="margin-top: 8px; align-items: center;">
+              <div class="grid3-custom" style="margin-top: 6px; align-items: center;">
                 <div class="field">
                   <label>Stroke Color 1</label>
                   <input type="color" id="innerStrokeColor1" value="#FFFFFF" />
@@ -718,7 +714,7 @@ Hacksaw Gaming - Rip City</textarea>
                 </div>
               </div>
 
-              <div id="innerStrokeGradBox" style="margin-top: 8px;">
+              <div id="innerStrokeGradBox" style="margin-top: 6px;">
                 <div class="grid3-custom" style="align-items: center;">
                   <div class="field">
                     <label>Stroke Color 2</label>
@@ -734,7 +730,7 @@ Hacksaw Gaming - Rip City</textarea>
                   </div>
                 </div>
 
-                <div class="field" id="innerStrokeAngleField" style="margin-top: 8px;">
+                <div class="field" id="innerStrokeAngleField" style="margin-top: 6px;">
                   <label>Stroke Gradient Direction</label>
                   <select id="innerStrokeAngle">
                     <option value="to-bottom" selected>Top → Bottom</option>
@@ -773,7 +769,7 @@ Hacksaw Gaming - Rip City</textarea>
         <div class="review-toolbar">
           <div class="toolbar-left">
             <span class="step-badge" style="margin-bottom:0;">STEP 6 OF 7</span>
-            <h3 style="margin: 0; font-size: 14px; color: #FFF;">Review & Edit Individual Thumbnails</h3>
+            <h3 style="margin: 0; font-size: 13.5px; color: #FFF;">Review & Edit Individual Thumbnails</h3>
             <span id="batchCountBadge" class="count-pill">0 thumbnails</span>
             <div class="view-mode-pills" id="viewModeGroup">
               <button type="button" class="view-pill active" data-view="final">Final Production</button>
@@ -823,29 +819,29 @@ Hacksaw Gaming - Rip City</textarea>
           <div class="step-badge">STEP 7 OF 7</div>
           <h2>Save & Export Finished Thumbnails</h2>
           <p class="step-desc">
-            Choose whether to save all thumbnails into a single flat folder or automatically organize them into provider subfolders.
+            Choose whether to export all thumbnails in a single flat folder or organized into provider subfolders.
           </p>
 
           <!-- SAVE STRUCTURE CARDS -->
-          <div class="method-cards" style="margin-top: 16px;">
+          <div class="method-cards" style="margin-top: 10px;">
             <div class="method-card active" id="saveCardSingle" data-savemode="single">
               <div class="method-icon">📁</div>
               <div class="method-info">
                 <div class="method-title">Save in a Single Folder</div>
-                <div class="method-sub">Places all finished thumbnails directly inside your chosen output folder</div>
+                <div class="method-sub">Places all finished thumbnails in one flat folder</div>
               </div>
             </div>
 
             <div class="method-card" id="saveCardHierarchy" data-savemode="hierarchy">
               <div class="method-icon">🗂️</div>
               <div class="method-info">
-                <div class="method-title">Create Hierarchy Separated by Providers</div>
-                <div class="method-sub">Creates a dedicated subfolder for each Provider (e.g. <code>Output/Pragmatic Play/Sweet Bonanza.png</code>)</div>
+                <div class="method-title">Hierarchy by Provider</div>
+                <div class="method-sub">Subfolder per Provider (e.g. <code>Pragmatic Play/Game.png</code>)</div>
               </div>
             </div>
           </div>
 
-          <div class="grid2" style="margin-top: 16px;">
+          <div class="grid2" style="margin-top: 10px;">
             <div class="field">
               <label>File Naming Format</label>
               <select id="exportNaming">
@@ -858,40 +854,40 @@ Hacksaw Gaming - Rip City</textarea>
             <div class="field">
               <label>Image Format</label>
               <select id="exportFormat">
-                <option value="png" selected>PNG (Lossless / Supports Rounded Corners)</option>
+                <option value="png" selected>PNG (Lossless / Rounded Corners)</option>
                 <option value="jpg" id="optFormatJpg">JPG (95% Quality)</option>
                 <option value="webp" id="optFormatWebp">WEBP (Optimized)</option>
               </select>
             </div>
           </div>
 
-          <div id="exportPngLockNotice" class="png-warning-banner hidden" style="margin-top: 12px;">
+          <div id="exportPngLockNotice" class="png-warning-banner hidden" style="margin-top: 8px;">
             <span class="warn-icon">⚠️</span>
             <div>
-              <strong>PNG Locked:</strong> Because <strong>Rounded Corners</strong> are enabled on your thumbnails, export format is locked to <strong>PNG</strong> to preserve transparent corners.
+              <strong>PNG Locked:</strong> Rounded Corners are enabled, so export format is locked to <strong>PNG</strong>.
             </div>
           </div>
 
-          <div class="field" style="margin-top: 16px;">
-            <label>Destination Folder</label>
+          <div class="field" style="margin-top: 10px;">
+            <label>Destination Package</label>
             <div class="dest-row">
-              <input id="exportDirInput" type="text" placeholder="Click Browse or Export to choose destination folder…" readonly />
-              <button id="btnPickExportDir" type="button" class="secondary-btn">Browse Folder…</button>
+              <input id="exportDirInput" type="text" placeholder="Downloads (ZIP Archive / Direct Download)" readonly />
+              <button id="btnPickExportDir" type="button" class="secondary-btn">Choose…</button>
             </div>
           </div>
 
-          <div style="margin-top: 22px;">
-            <button id="btnExportAll" type="button" class="export-btn full-width" style="height: 44px; font-size: 13px;">
+          <div style="margin-top: 14px;">
+            <button id="btnExportAll" type="button" class="export-btn full-width" style="height: 38px; font-size: 12.5px;">
               💾 Export All Thumbnails Now
             </button>
           </div>
 
           <!-- STEP 7 EXPORT PROGRESS BAR -->
-          <div id="exportProgressWrap" class="progress-wrap hidden" style="margin-top: 12px; border-radius: 6px;">
+          <div id="exportProgressWrap" class="progress-wrap hidden" style="margin-top: 10px; border-radius: 6px;">
             <div class="progress-info">
               <span class="progress-label-with-spinner">
                 <span class="spinner-ring sm"></span>
-                <span id="exportProgressLabel">Exporting thumbnails to disk…</span>
+                <span id="exportProgressLabel">Exporting thumbnails…</span>
               </span>
               <span class="progress-meta-right">
                 <span id="exportProgressCount" class="prog-count-pill">0 / 0</span>
@@ -901,7 +897,7 @@ Hacksaw Gaming - Rip City</textarea>
             <div class="progress-track">
               <div id="exportProgressFill" class="progress-fill shimmer" style="width: 0%;"></div>
             </div>
-            <div id="exportProgressSubdetail" class="progress-subdetail">Preparing output folders…</div>
+            <div id="exportProgressSubdetail" class="progress-subdetail">Preparing output package…</div>
           </div>
         </div>
 
