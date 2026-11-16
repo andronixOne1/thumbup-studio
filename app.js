@@ -2719,6 +2719,99 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+  // Step 7: Save Settings as Preset
+  if ($("btnSavePhasePreset")) {
+    const handleSavePhasePreset = async () => {
+      const nameInput = $("savePhasePresetName");
+      const msg = $("savePhasePresetMsg");
+      const rawName = nameInput ? nameInput.value.trim() : "";
+      const base = (batchItems.length > 0 && batchItems[selectedPreviewItemIndex])
+        ? getItemEffectiveSettings(batchItems[selectedPreviewItemIndex])
+        : getBaseSettings();
+
+      const name = rawName || `Preset (${base.width || $("width").value}×${base.height || $("height").value})`;
+
+      const presetData = {
+        name,
+        // Dimensions
+        width: base.width || $("width").value,
+        height: base.height || $("height").value,
+        // Frame Rounded Edges
+        enableCornerRounding: base.enableCornerRounding !== undefined ? Boolean(base.enableCornerRounding) : $("enableCornerRounding").checked,
+        cornerRadius: base.cornerRadius !== undefined ? base.cornerRadius : $("cornerRadius").value,
+        cropFitMode: base.cropFitMode || $("cropFitMode").value,
+        cropAlign: base.cropAlign || $("cropAlign").value,
+        cropOffsetX: base.cropOffsetX !== undefined ? base.cropOffsetX : $("cropOffsetX").value,
+        cropOffsetY: base.cropOffsetY !== undefined ? base.cropOffsetY : $("cropOffsetY").value,
+        cropZoom: base.cropZoom !== undefined ? base.cropZoom : $("cropZoom").value,
+        // Font sizing and placement
+        gameFontFamily: base.gameFontFamily || (($("gameFont").value || "").split("|||")[0]),
+        gameFontStyle: base.gameFontStyle || (($("gameFont").value || "").split("|||")[1]),
+        gameSizingMode: base.gameSizingMode || $("gameSizingMode").value,
+        gameFontSize: base.gameFontSize || $("gameFontSize").value,
+        providerFontFamily: base.providerFontFamily || (($("providerFont").value || "").split("|||")[0]),
+        providerFontStyle: base.providerFontStyle || (($("providerFont").value || "").split("|||")[1]),
+        providerFontSize: base.providerFontSize || $("providerFontSize").value,
+        textPlacement: base.textPlacement || $("textPlacement").value,
+        providerPosition: base.providerPosition || $("providerPosition").value,
+        gameAllCaps: base.gameAllCaps !== undefined ? Boolean(base.gameAllCaps) : $("gameAllCaps").checked,
+        providerAllCaps: base.providerAllCaps !== undefined ? Boolean(base.providerAllCaps) : $("providerAllCaps").checked,
+        marginX: base.marginX !== undefined ? base.marginX : $("marginX").value,
+        marginY: base.marginY !== undefined ? base.marginY : $("marginY").value,
+        spacing: base.spacing !== undefined ? base.spacing : $("spacing").value,
+        maxTextHeight: base.maxTextHeight !== undefined ? base.maxTextHeight : $("maxTextHeight").value,
+        // Stroke options
+        enableInnerStroke: base.enableInnerStroke !== undefined ? Boolean(base.enableInnerStroke) : $("enableInnerStroke").checked,
+        innerStrokeWidth: base.innerStrokeWidth !== undefined ? base.innerStrokeWidth : $("innerStrokeWidth").value,
+        innerStrokeType: base.innerStrokeType || $("innerStrokeType").value,
+        innerStrokeColor1: base.innerStrokeColor1 || $("innerStrokeColor1").value,
+        innerStrokeOpacity1: base.innerStrokeOpacity1 !== undefined ? base.innerStrokeOpacity1 : $("innerStrokeOpacity1").value,
+        innerStrokeColor2: base.innerStrokeColor2 || $("innerStrokeColor2").value,
+        innerStrokeOpacity2: base.innerStrokeOpacity2 !== undefined ? base.innerStrokeOpacity2 : $("innerStrokeOpacity2").value,
+        innerStrokeAngle: base.innerStrokeAngle !== undefined ? base.innerStrokeAngle : $("innerStrokeAngle").value,
+        // Gradient overlay options
+        overlayStyle: base.overlayStyle || $("overlayStyle").value,
+        gradientType: base.gradientType || $("gradientType").value,
+        radialColorSteps: base.radialColorSteps !== undefined ? base.radialColorSteps : $("radialColorSteps").value,
+        radialRadius: base.radialRadius !== undefined ? base.radialRadius : $("radialRadius").value,
+        radialColor2: base.radialColor2 || $("radialColor2").value,
+        radialOpacity2: base.radialOpacity2 !== undefined ? base.radialOpacity2 : $("radialOpacity2").value,
+        radialAlign: base.radialAlign || $("radialAlign").value,
+        radialCenterX: base.radialCenterX !== undefined ? base.radialCenterX : $("radialCenterX").value,
+        radialCenterY: base.radialCenterY !== undefined ? base.radialCenterY : $("radialCenterY").value,
+        standardOpacity: base.standardOpacity !== undefined ? base.standardOpacity : $("standardOpacity").value,
+        customColor: base.customColor || $("customColor").value,
+        multiColors: base.multiColors || getMultiColors(),
+        customOpacity: base.customOpacity !== undefined ? base.customOpacity : $("customOpacity").value,
+        blurRadius: base.blurRadius !== undefined ? base.blurRadius : $("blurRadius").value,
+      };
+
+      const res = await window.thumbupAPI.savePreset(presetData);
+      if (res && res.ok) {
+        presets = res.presets || [];
+        renderPresets();
+        if (nameInput) nameInput.value = "";
+        if (msg) {
+          msg.textContent = `✔ Preset "${name}" saved! Available in Step 1 presets.`;
+          msg.style.display = "block";
+          setTimeout(() => {
+            msg.style.display = "none";
+          }, 3500);
+        }
+      }
+    };
+
+    $("btnSavePhasePreset").onclick = handleSavePhasePreset;
+    if ($("savePhasePresetName")) {
+      $("savePhasePresetName").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleSavePhasePreset();
+        }
+      });
+    }
+  }
+
   // Generic change listeners for live preview
   document
     .querySelectorAll(

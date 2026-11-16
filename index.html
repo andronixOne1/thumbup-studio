@@ -876,6 +876,25 @@ Hacksaw Gaming - Rip City</textarea>
             </div>
           </div>
 
+          <!-- SAVE SETTINGS AS PRESET -->
+          <div class="preset-save-box" style="margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255, 255, 255, 0.02);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <label style="font-weight: 600; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                Save Current Settings as Preset
+              </label>
+              <span style="font-size: 10px; color: var(--text-muted);">Dimensions • Frame • Fonts • Strokes • Gradients</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="savePhasePresetName" placeholder="e.g. My Custom Slot Preset" style="flex: 1; height: 32px; font-size: 12px;" />
+              <button type="button" id="btnSavePhasePreset" class="secondary-btn" style="height: 32px; white-space: nowrap; font-size: 11.5px; padding: 0 14px; font-weight: 600;">
+                💾 Save as Preset
+              </button>
+            </div>
+            <div id="savePhasePresetMsg" style="font-size: 11px; color: #10B981; margin-top: 6px; display: none; font-weight: 500;">
+              ✔ Preset saved successfully! Available in Step 1 presets.
+            </div>
+          </div>
+
           <div style="margin-top: 14px;">
             <button id="btnExportAll" type="button" class="export-btn full-width" style="height: 38px; font-size: 12.5px;">
               💾 Export All Thumbnails Now
