@@ -657,8 +657,8 @@
         }
 
         // Organic Elliptical Unclip proportional to text line height (bh) and word span (bw)
-        const rx = Math.max(14, Math.round(b.bh * 1.10), Math.round(b.bw * 0.13));
-        const ry = Math.max(12, Math.round(b.bh * 1.12));
+        const rx = Math.max(15, Math.round(b.bh * 1.02), Math.round(b.bw * 0.12));
+        const ry = Math.max(12, Math.round(b.bh * 0.98));
 
         const subX0 = Math.max(0, b.x0 - rx - 2);
         const subY0 = Math.max(0, b.y0 - ry - 2);
@@ -668,23 +668,70 @@
         const subH = subY1 - subY0;
 
         const subMask = new Uint8Array(subW * subH);
+        let coreTotal = 0;
+        let flatWhiteCore = 0;
+
         for (let sy = 0; sy < subH; sy++) {
-          const rowG = (subY0 + sy) * w;
+          const gy = subY0 + sy;
+          const rowG = gy * w;
           const rowS = sy * subW;
           for (let sx = 0; sx < subW; sx++) {
-            if (labels[rowG + (subX0 + sx)] === b.label) {
+            const gx = subX0 + sx;
+            if (labels[rowG + gx] === b.label) {
               subMask[rowS + sx] = 1;
+              coreTotal++;
+              const p = (rowG + gx) * 4;
+              const r = natPixels[p], g = natPixels[p + 1], bl = natPixels[p + 2];
+              const mn = Math.min(r, g, bl);
+              const mx = Math.max(r, g, bl);
+              if (mn > 175 && (mx - mn) < 35) flatWhiteCore++;
             }
           }
         }
 
         const pillSub = morphDilateEllipse(subMask, subW, subH, rx, ry);
-        for (let sy = 0; sy < subH; sy++) {
-          const rowG = (subY0 + sy) * w;
-          const rowS = sy * subW;
-          for (let sx = 0; sx < subW; sx++) {
-            if (pillSub[rowS + sx]) {
-              fullMask[rowG + (subX0 + sx)] = 1;
+        const flatWhiteRatio = coreTotal > 10 ? flatWhiteCore / coreTotal : 0.0;
+
+        if (flatWhiteRatio > 0.55) {
+          // Adaptive Tight Glyph Mask for flat monochrome white text (e.g. RIP CITY / provider subtitles):
+          // Preserves 100% of the real background artwork between letters and between stacked lines!
+          const whiteGlyphSub = new Uint8Array(subW * subH);
+          for (let sy = 0; sy < subH; sy++) {
+            const gy = subY0 + sy;
+            const rowG = gy * w;
+            const rowS = sy * subW;
+            const py512 = Math.min(511, Math.floor((gy / h) * 512));
+            for (let sx = 0; sx < subW; sx++) {
+              if (!pillSub[rowS + sx]) continue;
+              const gx = subX0 + sx;
+              const px512 = Math.min(511, Math.floor((gx / w) * 512));
+              const p = (rowG + gx) * 4;
+              const r = natPixels[p], g = natPixels[p + 1], bl = natPixels[p + 2];
+              const mn = Math.min(r, g, bl);
+              const mx = Math.max(r, g, bl);
+              if ((mn > 135 && (mx - mn) < 55) || probMap[py512 * 512 + px512] > 0.20) {
+                whiteGlyphSub[rowS + sx] = 1;
+              }
+            }
+          }
+          const tightSub = morphDilateEllipse(whiteGlyphSub, subW, subH, 5, 5);
+          for (let sy = 0; sy < subH; sy++) {
+            const rowG = (subY0 + sy) * w;
+            const rowS = sy * subW;
+            for (let sx = 0; sx < subW; sx++) {
+              if (tightSub[rowS + sx]) {
+                fullMask[rowG + (subX0 + sx)] = 1;
+              }
+            }
+          }
+        } else {
+          for (let sy = 0; sy < subH; sy++) {
+            const rowG = (subY0 + sy) * w;
+            const rowS = sy * subW;
+            for (let sx = 0; sx < subW; sx++) {
+              if (pillSub[rowS + sx]) {
+                fullMask[rowG + (subX0 + sx)] = 1;
+              }
             }
           }
         }
@@ -693,11 +740,10 @@
 
       if (validBoxesCount === 0) return null;
 
-      // Smooth organic contour with Gaussian blur + threshold so multi-line titles (like "SWEET" + "BONANZA")
-      // coalesce into a smooth, rounded shape without jagged steps
+      // Smooth organic contour with mild Gaussian blur + threshold
       const floatMask = new Float32Array(w * h);
       for (let i = 0; i < w * h; i++) floatMask[i] = fullMask[i] ? 255.0 : 0.0;
-      const smoothBlur = blurFloatChannel(floatMask, w, h, Math.max(4, Math.round(Math.min(w, h) * 0.012)));
+      const smoothBlur = blurFloatChannel(floatMask, w, h, 3);
 
       const outCanvas = document.createElement("canvas");
       outCanvas.width = w;
@@ -707,7 +753,7 @@
       const outP = outData.data;
       let totalMasked = 0;
       for (let i = 0; i < w * h; i++) {
-        const v = smoothBlur[i] > 80.0 ? 255 : 0;
+        const v = smoothBlur[i] > 85.0 ? 255 : 0;
         if (v) totalMasked++;
         const p = i * 4;
         outP[p] = v;
@@ -1120,12 +1166,13 @@
   }
 
   /**
-   * High-Definition Local Context-Crop MI-GAN v2 + Harmonic Pyramid + PatchMatch Neural Inpainting:
-   * 1. Crops a generous context window around the masked region.
-   * 2. Reconstructs the Harmonic Pyramid + PatchMatch high-frequency texture guide (guarantees 0 foreign hallucinations).
-   * 3. Runs 2-Pass Anchor-Guided MI-GAN v2 (`migan_pipeline_v2.onnx`) on the crop.
-   * 4. Blends the MI-GAN v2 neural synthesis with the PatchMatch texture guide and feathers the mask boundary
-   *    over 6px so unmasked background artwork stays 100% original and transitions are invisible.
+   * High-Definition Sequential Line-by-Line Full-Frame MI-GAN v2 Neural Inpainting:
+   * 1. Pre-cleans all masked text regions onto a temporary base canvas (`curCanvas`) so while MI-GAN v2
+   *    inpaints text line `k`, other lines `j != k` do not expose raw white/gold text letters to MI-GAN's receptive field.
+   * 2. Splits the mask into horizontally-bridged text line components sorted bottom-to-top (`y` descending).
+   * 3. Runs Full-Frame MI-GAN v2 (`migan_pipeline_v2.onnx`) sequentially on each line band on the full `(w, h)` image,
+   *    keeping 100% of MI-GAN v2's sharp structural synthesis (zero harmonic blur overlay!).
+   * 4. Applies an Unsharp Mask Clarity Detail Boost (`amount = 0.50`) and composites with a tight 3px boundary feather.
    */
   async function runMiganNeuralInpaint(sourceImgDataUrl, maskImgDataUrl, dilateRadius = 0) {
     const img = await loadImage(sourceImgDataUrl);
@@ -1164,113 +1211,87 @@
       binMask = morphDilateEllipse(binMask, w, h, dilateRadius, dilateRadius);
     }
 
-    // Find bounding box of mask for local context crop
-    let minX = w, maxX = 0, minY = h, maxY = 0;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (binMask[y * w + x]) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
-    }
-
-    const bw = maxX - minX + 1;
-    const bh = maxY - minY + 1;
-    const padX = Math.max(64, Math.round(bw * 0.55));
-    const padY = Math.max(64, Math.round(bh * 0.65));
-    const cx0 = Math.max(0, minX - padX);
-    const cy0 = Math.max(0, minY - padY);
-    const cx1 = Math.min(w, maxX + 1 + padX);
-    const cy1 = Math.min(h, maxY + 1 + padY);
-    const cw = cx1 - cx0;
-    const ch = cy1 - cy0;
-
     try {
-      const cropCanvas = document.createElement("canvas");
-      cropCanvas.width = cw;
-      cropCanvas.height = ch;
-      const cropCtx = cropCanvas.getContext("2d");
-      cropCtx.drawImage(srcCanvas, cx0, cy0, cw, ch, 0, 0, cw, ch);
-
-      const cropMask = new Uint8Array(cw * ch);
-      const cropFloatMask = new Float32Array(cw * ch);
-      for (let y = 0; y < ch; y++) {
-        for (let x = 0; x < cw; x++) {
-          const v = binMask[(cy0 + y) * w + (cx0 + x)];
-          cropMask[y * cw + x] = v;
-          cropFloatMask[y * cw + x] = v ? 1.0 : 0.0;
-        }
+      const session = await getMiganSession();
+      if (!session) {
+        return inpaintCanvasAlgorithmic(sourceImgDataUrl, maskImgDataUrl);
       }
 
-      // Stage 1: Build Multi-Scale Harmonic Pyramid + PatchMatch High-Frequency Texture Guide
-      const guideCropCanvas = buildHarmonicPyramidAndPatchMatch(cropCanvas, cropMask, cw, ch);
-      const guidePixels = guideCropCanvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cw, ch).data;
+      // Pre-clean all masked lines onto `curCanvas` so while line `k` is being inpainted by MI-GAN v2,
+      // other lines `j != k` don't show raw text letters to MI-GAN's global context
+      const curCanvas = buildHarmonicPyramidAndPatchMatch(srcCanvas, binMask, w, h);
+      const curCtx = curCanvas.getContext("2d", { willReadFrequently: true });
+      const curImgData = curCtx.getImageData(0, 0, w, h);
+      const curPixels = curImgData.data;
 
-      // Stage 2: Run 2-Pass Anchor-Guided MI-GAN v2 Neural Inpainter
-      let finalMiganPixels = guidePixels;
-      const session = await getMiganSession();
-      if (session) {
-        const dist = computeMaskInteriorDistance(cropMask, cw, ch);
-        const pass1Hole = new Uint8Array(cropMask);
-        const anchorSpots = new Uint8Array(cw * ch);
-        let anchorCount = 0;
+      // Group mask into horizontal text line bands (bridge horizontally so letters on the same line stay together)
+      const lineBridgeRx = Math.max(8, Math.round(w * 0.035));
+      const lineBridged = morphClose(binMask, w, h, lineBridgeRx, 1);
+      const { labels: lineLabels, boxes: lineBoxes } = connectedComponentsWithLabels(lineBridged, w, h);
 
-        const step = Math.max(24, Math.round(Math.min(cw, ch) * 0.11));
-        const radA = Math.max(5, Math.round(step * 0.24));
-        const radSpot = radA + 4;
+      // Sort text line components bottom-to-top (`y1` descending)
+      lineBoxes.sort((a, b) => b.y1 - a.y1);
 
-        for (let gy = Math.floor(step / 2); gy < ch - Math.floor(step / 2); gy += step) {
-          for (let gx = Math.floor(step / 2); gx < cw - Math.floor(step / 2); gx += step) {
-            if (dist[gy * cw + gx] > 14) {
-              for (let dy = -radSpot; dy <= radSpot; dy++) {
-                const ay = gy + dy;
-                if (ay < 0 || ay >= ch) continue;
-                for (let dx = -radSpot; dx <= radSpot; dx++) {
-                  const ax = gx + dx;
-                  if (ax < 0 || ax >= cw) continue;
-                  const dSq = dx * dx + dy * dy;
-                  if (dSq <= radA * radA) {
-                    pass1Hole[ay * cw + ax] = 0; // Unmask guide island for MI-GAN Pass 1
-                  }
-                  if (dSq <= radSpot * radSpot) {
-                    anchorSpots[ay * cw + ax] = 1;
-                    anchorCount++;
-                  }
-                }
-              }
-            }
+      for (const lb of lineBoxes) {
+        if (lb.area < 12) continue;
+        const lineMask = new Uint8Array(w * h);
+        const lineFloat = new Float32Array(w * h);
+        let lCount = 0;
+        for (let i = 0; i < w * h; i++) {
+          if (binMask[i] && lineLabels[i] === lb.label) {
+            lineMask[i] = 1;
+            lineFloat[i] = 1.0;
+            lCount++;
           }
         }
+        if (lCount < 10) continue;
 
-        const pass1Canvas = await executeMiganPassOnCanvas(session, guideCropCanvas, pass1Hole, cw, ch);
-        const pass2Canvas = anchorCount > 0
-          ? await executeMiganPassOnCanvas(session, pass1Canvas, anchorSpots, cw, ch)
-          : pass1Canvas;
-        finalMiganPixels = pass2Canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cw, ch).data;
+        const outLineCanvas = await executeMiganPassOnCanvas(session, curCanvas, lineMask, w, h);
+        const outLinePixels = outLineCanvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+        const lineFeather = blurFloatChannel(lineFloat, w, h, 3);
+
+        for (let i = 0; i < w * h; i++) {
+          const a = lineFeather[i];
+          if (a <= 0.005) continue;
+          const p = i * 4;
+          curPixels[p] = Math.round(outLinePixels[p] * a + curPixels[p] * (1.0 - a));
+          curPixels[p + 1] = Math.round(outLinePixels[p + 1] * a + curPixels[p + 1] * (1.0 - a));
+          curPixels[p + 2] = Math.round(outLinePixels[p + 2] * a + curPixels[p + 2] * (1.0 - a));
+          curPixels[p + 3] = 255;
+        }
+        curCtx.putImageData(curImgData, 0, 0);
       }
 
-      // Soft 6px Gaussian feather blend on cropFloatMask so transition into original artwork is 100% invisible
-      const alphaFeather = blurFloatChannel(cropFloatMask, cw, ch, 6);
+      // Apply Unsharp Mask Clarity Detail Boost (amount = 0.50) to restore 100% crisp micro-contrast at native (w, h)
+      const rArr = new Float32Array(w * h);
+      const gArr = new Float32Array(w * h);
+      const bArr = new Float32Array(w * h);
+      const fullFloatMask = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) {
+        const p = i * 4;
+        rArr[i] = curPixels[p];
+        gArr[i] = curPixels[p + 1];
+        bArr[i] = curPixels[p + 2];
+        fullFloatMask[i] = binMask[i] ? 1.0 : 0.0;
+      }
 
-      for (let y = 0; y < ch; y++) {
-        for (let x = 0; x < cw; x++) {
-          const a = alphaFeather[y * cw + x];
-          if (a <= 0.005) continue;
-          const cp = (y * cw + x) * 4;
-          const sp = ((cy0 + y) * w + (cx0 + x)) * 4;
-          // Blend 55% MI-GAN v2 GAN synthesis + 45% PatchMatch high-frequency texture guide
-          const inR = finalMiganPixels[cp] * 0.55 + guidePixels[cp] * 0.45;
-          const inG = finalMiganPixels[cp + 1] * 0.55 + guidePixels[cp + 1] * 0.45;
-          const inB = finalMiganPixels[cp + 2] * 0.55 + guidePixels[cp + 2] * 0.45;
+      const blurR = blurFloatChannel(rArr, w, h, 2);
+      const blurG = blurFloatChannel(gArr, w, h, 2);
+      const blurB = blurFloatChannel(bArr, w, h, 2);
+      const alphaFeather = blurFloatChannel(fullFloatMask, w, h, 3);
 
-          srcPixels[sp] = Math.round(inR * a + srcPixels[sp] * (1.0 - a));
-          srcPixels[sp + 1] = Math.round(inG * a + srcPixels[sp + 1] * (1.0 - a));
-          srcPixels[sp + 2] = Math.round(inB * a + srcPixels[sp + 2] * (1.0 - a));
-          srcPixels[sp + 3] = Math.max(srcPixels[sp + 3], Math.round(255 * a));
-        }
+      for (let i = 0; i < w * h; i++) {
+        const a = alphaFeather[i];
+        if (a <= 0.005) continue;
+        const p = i * 4;
+        const sharpR = Math.max(0, Math.min(255, rArr[i] + (rArr[i] - blurR[i]) * 0.52));
+        const sharpG = Math.max(0, Math.min(255, gArr[i] + (gArr[i] - blurG[i]) * 0.52));
+        const sharpB = Math.max(0, Math.min(255, bArr[i] + (bArr[i] - blurB[i]) * 0.52));
+
+        srcPixels[p] = Math.round(sharpR * a + srcPixels[p] * (1.0 - a));
+        srcPixels[p + 1] = Math.round(sharpG * a + srcPixels[p + 1] * (1.0 - a));
+        srcPixels[p + 2] = Math.round(sharpB * a + srcPixels[p + 2] * (1.0 - a));
+        srcPixels[p + 3] = Math.max(srcPixels[p + 3], Math.round(255 * a));
       }
 
       srcCtx.putImageData(srcImageData, 0, 0);
@@ -1450,6 +1471,7 @@
 
     // If the image currently covers 100% of (tw, th) with opaque pixels (0 transparent pixels),
     // create a 10% border outpaint zone just like desktop processor.py
+    let effDx = dx, effDy = dy, effDrawW = drawW, effDrawH = drawH;
     if (transparentCount < 16) {
       const padX = Math.max(14, Math.round(tw * 0.10));
       const padY = Math.max(14, Math.round(th * 0.10));
@@ -1458,12 +1480,25 @@
       fgCtx.clearRect(0, 0, tw, th);
       fgCtx.drawImage(img, padX, padY, innerW, innerH);
       fgData = fgCtx.getImageData(0, 0, tw, th).data;
+      effDx = padX;
+      effDy = padY;
+      effDrawW = innerW;
+      effDrawH = innerH;
     }
 
     // Pad working canvas by ext=24px outside (tw, th) so horizon anchors at the outer edge lie outside the visible frame
     const ext = 24;
     const ew = tw + 2 * ext;
     const eh = th + 2 * ext;
+
+    // Overlay / inset the original image frame by ~3.2% on all sides so any dark border, vignette, or frame line
+    // around the original image is excluded from `rawOpaque` and cleanly replaced by the outpaint!
+    const insetX = Math.max(6, Math.round(effDrawW * 0.032));
+    const insetY = Math.max(6, Math.round(effDrawH * 0.032));
+    const safeX0 = effDx + insetX;
+    const safeX1 = effDx + effDrawW - insetX;
+    const safeY0 = effDy + insetY;
+    const safeY1 = effDy + effDrawH - insetY;
 
     const rawOpaque = new Uint8Array(ew * eh);
     const rCh = new Float32Array(ew * eh);
@@ -1472,9 +1507,10 @@
 
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
+        if (x < safeX0 || x >= safeX1 || y < safeY0 || y >= safeY1) continue;
         const sp = (y * tw + x) * 4;
         const a = fgData[sp + 3];
-        if (a >= 240) {
+        if (a >= 245) {
           const ei = (y + ext) * ew + (x + ext);
           rawOpaque[ei] = 1;
           rCh[ei] = fgData[sp];
@@ -1484,8 +1520,9 @@
       }
     }
 
-    // Erode opaque region by 4px so semi-transparent PNG edges and boundary seams are cleanly inpainted
-    let coreOpaque = morphErode(rawOpaque, ew, eh, 4, 4);
+    // Also erode by 3% around any internal transparent PNG cutouts so semi-transparent PNG edges are cleanly replaced
+    const erodeRad = Math.max(5, Math.round(Math.min(effDrawW, effDrawH) * 0.028));
+    let coreOpaque = morphErode(rawOpaque, ew, eh, erodeRad, erodeRad);
     let coreCount = 0;
     for (let i = 0; i < ew * eh; i++) {
       if (coreOpaque[i]) coreCount++;
@@ -1679,7 +1716,8 @@
       }
     }
 
-    // Crop visible (tw, th) region and feather-blend over original `coreOpaque` pixels
+    // Crop visible (tw, th) region and feather-blend strictly inside `coreOpaque` so the outer ~3.2% of the original
+    // image frame is 100% replaced (alpha = 1.0), completely eliminating any dark frame outline!
     const outCanvas = document.createElement("canvas");
     outCanvas.width = tw;
     outCanvas.height = th;
@@ -1688,23 +1726,29 @@
     const outPixels = outImgData.data;
 
     const genPixels = finalFullCanvas.getContext("2d", { willReadFrequently: true }).getImageData(ext, ext, tw, th).data;
-    const visEmptyFloat = new Float32Array(tw * th);
+    const visEmptyBin = new Uint8Array(tw * th);
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
-        visEmptyFloat[y * tw + x] = coreOpaque[(y + ext) * ew + (x + ext)] ? 0.0 : 1.0;
+        visEmptyBin[y * tw + x] = coreOpaque[(y + ext) * ew + (x + ext)] ? 0 : 1;
       }
     }
-    const blendAlpha = blurFloatChannel(visEmptyFloat, tw, th, 5);
+    // Dilate empty mask inward by 5px before feathering so alpha is 1.0 across the entire outer 3.2% frame border
+    const visEmptyDil = morphDilate(visEmptyBin, tw, th, 5, 5);
+    const visEmptyFloat = new Float32Array(tw * th);
+    for (let i = 0; i < tw * th; i++) {
+      visEmptyFloat[i] = visEmptyDil[i] ? 1.0 : 0.0;
+    }
+    const blendAlpha = blurFloatChannel(visEmptyFloat, tw, th, 6);
 
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
         const i = y * tw + x;
-        const a = blendAlpha[i];
+        const a = visEmptyBin[i] ? 1.0 : blendAlpha[i];
         const p = i * 4;
         const gp = ((y + ext) * ew + (x + ext)) * 4;
-        const synR = genPixels[p] * 0.58 + guideFullPixels[gp] * 0.42;
-        const synG = genPixels[p + 1] * 0.58 + guideFullPixels[gp + 1] * 0.42;
-        const synB = genPixels[p + 2] * 0.58 + guideFullPixels[gp + 2] * 0.42;
+        const synR = genPixels[p] * 0.85 + guideFullPixels[gp] * 0.15;
+        const synG = genPixels[p + 1] * 0.85 + guideFullPixels[gp + 1] * 0.15;
+        const synB = genPixels[p + 2] * 0.85 + guideFullPixels[gp + 2] * 0.15;
         outPixels[p] = Math.round(synR * a + fgData[p] * (1.0 - a));
         outPixels[p + 1] = Math.round(synG * a + fgData[p + 1] * (1.0 - a));
         outPixels[p + 2] = Math.round(synB * a + fgData[p + 2] * (1.0 - a));
