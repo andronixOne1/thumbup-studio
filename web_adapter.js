@@ -1,10 +1,10 @@
 /**
- * ThumbUp Studio — Web Platform Adapter (v2.1)
+ * ThumbUp Studio — Web Platform Adapter (v3.0)
  * Implements window.thumbupAPI 100% client-side in the user's browser:
- * - Ratio-Prioritized Live Slot Thumbnail Scraper + Pre-Bundled Multi-Ratio Catalog
- * - PP-OCRv4 DBNet Neural Text Detection with Full 3D Logo Unclipping & Tight Glyph Segmentation
- * - Local Context-Crop LaMa ONNX Neural Inpainting (IndexedDB Cached on User's Computer)
- * - Transparency-Aware 2-Pass LaMa Generative Outpaint (Fills Transparent PNG Parts & Empty Frame Space)
+ * - Casino-Prioritized + Google Images & Bing Images Ratio-Matched Slot Thumbnail Scraper
+ * - PP-OCRv4 DBNet Neural Text Detection with Organic Elliptical 3D Logo Unclipping
+ * - Multi-Scale Harmonic Pyramid + PatchMatch High-Frequency Texture Synthesis + 2-Pass Anchor-Guided MI-GAN v2 Neural Inpainting
+ * - Transparency-Aware MI-GAN v2 + PatchMatch Generative Outpaint (Fills Transparent PNG Parts & Empty Frame Space)
  */
 (() => {
   const STORAGE_KEY = "thumbup-storage-v2";
@@ -296,10 +296,10 @@
   }
 
   // ==========================================
-  // REAL DEEP LEARNING PP-OCR TEXT DETECTION & LAMA INPAINTING (100% LOCAL ON USER'S COMPUTER)
+  // REAL DEEP LEARNING PP-OCR TEXT DETECTION & MI-GAN v2 + PATCHMATCH HD INPAINTING (100% LOCAL ON USER'S COMPUTER)
   // ==========================================
-  let _lamaSession = null;
-  let _lamaLoadingPromise = null;
+  let _miganSession = null;
+  let _miganLoadingPromise = null;
   let _detSession = null;
   let _detLoadingPromise = null;
 
@@ -311,36 +311,46 @@
     }
   }
 
-  async function getLamaSession() {
-    if (_lamaSession) return _lamaSession;
-    if (_lamaLoadingPromise) return _lamaLoadingPromise;
+  async function getMiganSession() {
+    if (_miganSession) return _miganSession;
+    if (_miganLoadingPromise) return _miganLoadingPromise;
 
-    _lamaLoadingPromise = (async () => {
+    _miganLoadingPromise = (async () => {
       if (typeof window.ort === "undefined") {
-        console.warn("ONNX Runtime Web not loaded; using local algorithmic inpainter.");
+        console.warn("ONNX Runtime Web not loaded; using local harmonic + PatchMatch inpainter.");
         return null;
       }
       try {
         configureOrtEnv();
-        const modelUrl = "https://huggingface.co/linkus2026/lama-int8-mobile/resolve/main/lama_int8.onnx";
-        const modelBytes = await fetchModelWithCache(
-          "lama_int8_v1",
-          modelUrl,
-          "Caching LaMa Neural AI Model to your computer"
-        );
-        _lamaSession = await window.ort.InferenceSession.create(modelBytes, {
+        let modelBytes = null;
+        const urls = [
+          "./assets/models/migan_pipeline_v2.onnx",
+          "https://huggingface.co/andraniksargsyan/migan/resolve/main/migan_pipeline_v2.onnx"
+        ];
+        for (const u of urls) {
+          try {
+            modelBytes = await fetchModelWithCache(
+              "migan_pipeline_v2_v1",
+              u,
+              "Caching MI-GAN v2 HD Inpaint Model to your computer"
+            );
+            if (modelBytes && modelBytes.byteLength > 1000000) break;
+          } catch (e) {}
+        }
+        if (!modelBytes) throw new Error("Could not load MI-GAN v2 model bytes");
+        _miganSession = await window.ort.InferenceSession.create(modelBytes, {
           executionProviders: ["wasm"]
         });
-        console.log("LaMa ONNX Neural Network initialized on user computer!");
-        return _lamaSession;
+        console.log("MI-GAN v2 ONNX Neural Inpainter initialized on user computer!");
+        return _miganSession;
       } catch (err) {
-        console.warn("Failed to load LaMa ONNX model, falling back to local algorithmic inpainter:", err);
-        _lamaLoadingPromise = null;
+        console.warn("Failed to load MI-GAN v2 ONNX model, falling back to local Harmonic+PatchMatch inpainter:", err);
+        _miganLoadingPromise = null;
         return null;
       }
     })();
 
-    return _lamaLoadingPromise;
+    return _miganLoadingPromise;
   }
 
   async function getDetSession() {
@@ -401,6 +411,54 @@
     return out;
   }
 
+  // Exact 2D Elliptical Dilation on Uint8Array (0 or 1) using 1D horizontal distance + vertical ellipse chord check
+  function morphDilateEllipse(mask, w, h, rx, ry) {
+    rx = Math.max(1, Math.round(rx));
+    ry = Math.max(1, Math.round(ry));
+    const INF = 1e9;
+    const dxSq = new Float32Array(w * h);
+    dxSq.fill(INF);
+
+    // Pass 1: Horizontal squared distance to nearest foreground pixel
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      let lastX = -1e6;
+      for (let x = 0; x < w; x++) {
+        if (mask[row + x]) lastX = x;
+        const d = x - lastX;
+        if (d <= rx) dxSq[row + x] = (d * d) / (rx * rx);
+      }
+      lastX = 1e6;
+      for (let x = w - 1; x >= 0; x--) {
+        if (mask[row + x]) lastX = x;
+        const d = lastX - x;
+        if (d <= rx) {
+          const v = (d * d) / (rx * rx);
+          if (v < dxSq[row + x]) dxSq[row + x] = v;
+        }
+      }
+    }
+
+    // Pass 2: Vertical ellipse check: dxSq[ny, x] + (dy / ry)^2 <= 1.0
+    const out = new Uint8Array(w * h);
+    const invRySq = 1.0 / (ry * ry);
+    for (let y = 0; y < h; y++) {
+      const yMin = Math.max(0, y - ry);
+      const yMax = Math.min(h - 1, y + ry);
+      const row = y * w;
+      for (let x = 0; x < w; x++) {
+        for (let ny = yMin; ny <= yMax; ny++) {
+          const dy = ny - y;
+          if (dxSq[ny * w + x] + dy * dy * invRySq <= 1.0) {
+            out[row + x] = 1;
+            break;
+          }
+        }
+      }
+    }
+    return out;
+  }
+
   function morphErode(mask, w, h, rx, ry) {
     const inv = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) inv[i] = mask[i] ? 0 : 1;
@@ -414,8 +472,8 @@
     return morphErode(morphDilate(mask, w, h, rx, ry), w, h, rx, ry);
   }
 
-  // Connected Components (8-connectivity) on binary Uint8Array
-  function connectedComponents(mask, w, h) {
+  // Connected Components (8-connectivity) on binary Uint8Array — returns { labels, boxes }
+  function connectedComponentsWithLabels(mask, w, h) {
     const labels = new Int32Array(w * h);
     const boxes = [];
     const stack = [];
@@ -466,18 +524,16 @@
         });
       }
     }
-    return boxes;
+    return { labels, boxes };
   }
 
-  // Separable Box Blur on single-channel Float32Array (used for soft mask feathering)
+  // Separable Box Blur on single-channel Float32Array (used for soft mask feathering & harmonic smoothing)
   function blurFloatChannel(src, w, h, radius) {
     if (radius <= 0) return new Float32Array(src);
     let cur = new Float32Array(src);
     let tmp = new Float32Array(w * h);
     const win = radius * 2 + 1;
-    // 2 passes approximate Gaussian blur
     for (let pass = 0; pass < 2; pass++) {
-      // Horizontal
       for (let y = 0; y < h; y++) {
         const row = y * w;
         let sum = 0;
@@ -491,7 +547,6 @@
           sum += cur[row + addX] - cur[row + removeX];
         }
       }
-      // Vertical
       for (let x = 0; x < w; x++) {
         let sum = 0;
         for (let y = -radius; y <= radius; y++) {
@@ -509,12 +564,13 @@
   }
 
   /**
-   * Direct JS port of python_engine/processor.py:
-   * - Runs PP-OCRv4 DBNet on 512x512
-   * - Unclips DBNet shrunken text cores by 1.18x vertically and 0.28x horizontally so tall capital letters,
-   *   3D extrusions, colored strokes, and drop shadows are 100% inside the box
-   * - Segments tight glyph + outline pixels by comparing against the local outer context ring's
-   *   25th, 50th, and 75th percentile background colors
+   * PP-OCRv4 DBNet Neural Text Detector with Organic Elliptical 3D Logo Unclipping:
+   * - Runs PP-OCRv4 DBNet on 512x512 and upsamples the probability field to native (w, h).
+   * - Bridges horizontally adjacent letters into word components.
+   * - Dilates each word contour with an organic elliptical kernel proportional to its line height & width
+   *   (`rx = max(16, bh * 1.10, bw * 0.13)`, `ry = max(14, bh * 1.12)`) so tall capital letters, 3D extrusions,
+   *   and thick outer strokes are 100% covered while keeping a smooth, rounded pill shape (never creating
+   *   sharp 90-degree rectangular corners that cut into characters or shields).
    */
   async function detectTextMaskPpOcr(imgDataUrl, sensitivity = "balanced") {
     const session = await getDetSession();
@@ -532,7 +588,6 @@
       natCtx.drawImage(img, 0, 0);
       const natPixels = natCtx.getImageData(0, 0, w, h).data;
 
-      // Rescale to 512x512 for PP-OCR Det
       const detCanvas = document.createElement("canvas");
       detCanvas.width = 512;
       detCanvas.height = 512;
@@ -553,44 +608,40 @@
       const res = await session.run({ x: tensor });
       const probMap = res["sigmoid_0.tmp_0"].data;
 
-      const probThresh = sensitivity === "aggressive" ? 0.22 : 0.28;
-      const coreBin = new Uint8Array(plane);
+      const probThresh = sensitivity === "aggressive" ? 0.19 : 0.22;
+      const coreBin = new Uint8Array(w * h);
       let coreCount = 0;
-      for (let i = 0; i < plane; i++) {
-        if (probMap[i] > probThresh) {
-          coreBin[i] = 1;
-          coreCount++;
+      for (let y = 0; y < h; y++) {
+        const sy = Math.min(511, Math.floor((y / h) * 512));
+        for (let x = 0; x < w; x++) {
+          const sx = Math.min(511, Math.floor((x / w) * 512));
+          if (probMap[sy * 512 + sx] > probThresh) {
+            coreBin[y * w + x] = 1;
+            coreCount++;
+          }
         }
       }
-      if (coreCount < 15) return null;
+      if (coreCount < 18) return null;
 
-      // Bridge horizontally adjacent letters of the same word in 512x512 space
-      const bridged = morphClose(coreBin, 512, 512, 5, 1);
-      const rawBoxes = connectedComponents(bridged, 512, 512);
+      // Bridge horizontally adjacent letters of the same word
+      const bridgeRx = Math.max(4, Math.round(w * 0.012));
+      const bridgeRy = Math.max(2, Math.round(h * 0.005));
+      const bridged = morphClose(coreBin, w, h, bridgeRx, bridgeRy);
+      const { labels, boxes } = connectedComponentsWithLabels(bridged, w, h);
 
-      const sx = w / 512.0;
-      const sy = h / 512.0;
       const fullMask = new Uint8Array(w * h);
       let validBoxesCount = 0;
 
-      for (const b of rawBoxes) {
-        if (b.area < 28 || b.bw < 8 || b.bh < 4) continue;
-        // Ignore giant false-positive boxes spanning > 48% of image height
-        if (b.bh > 512 * 0.48) continue;
-
-        const x0 = Math.floor(b.x0 * sx);
-        const y0 = Math.floor(b.y0 * sy);
-        const x1 = Math.ceil(b.x1 * sx);
-        const y1 = Math.ceil(b.y1 * sy);
-        const cwBox = Math.max(6, x1 - x0);
-        const chBox = Math.max(6, y1 - y0);
+      for (const b of boxes) {
+        if (b.area < 40 || b.bw < 10 || b.bh < 5) continue;
+        if (b.bh > h * 0.46) continue;
 
         // If strict mode ("Flat White Text Only"), check if this region is flat white text vs colorful 3D logo
         if (sensitivity === "strict") {
-          if (chBox > h * 0.24) continue;
+          if (b.bh > h * 0.24) continue;
           let whiteCount = 0, colorfulCount = 0, totalBox = 0;
-          for (let yy = Math.max(0, y0 - 4); yy < Math.min(h, y1 + 4); yy++) {
-            for (let xx = Math.max(0, x0 - 4); xx < Math.min(w, x1 + 4); xx++) {
+          for (let yy = Math.max(0, b.y0 - 4); yy < Math.min(h, b.y1 + 4); yy++) {
+            for (let xx = Math.max(0, b.x0 - 4); xx < Math.min(w, b.x1 + 4); xx++) {
               const p = (yy * w + xx) * 4;
               const r = natPixels[p], g = natPixels[p + 1], bl = natPixels[p + 2];
               const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl);
@@ -605,106 +656,35 @@
           }
         }
 
-        // Unclip DBNet shrunken core box so tall first/last capital letters (S/T/B), 3D extrusions,
-        // thick outer strokes, and drop shadows are completely inside (ux0, uy0, ux1, uy1)!
-        const padY = Math.max(12, Math.round(chBox * 1.18));
-        const padX = Math.max(14, Math.round(cwBox * 0.28));
-        const padXRight = x1 > w * 0.58 ? Math.max(padX, Math.round(w * 0.12)) : padX;
+        // Organic Elliptical Unclip proportional to text line height (bh) and word span (bw)
+        const rx = Math.max(14, Math.round(b.bh * 1.10), Math.round(b.bw * 0.13));
+        const ry = Math.max(12, Math.round(b.bh * 1.12));
 
-        const ux0 = Math.max(0, x0 - padX);
-        const uy0 = Math.max(0, y0 - padY);
-        const ux1 = Math.min(w, x1 + padXRight);
-        const uy1 = Math.min(h, y1 + padY);
+        const subX0 = Math.max(0, b.x0 - rx - 2);
+        const subY0 = Math.max(0, b.y0 - ry - 2);
+        const subX1 = Math.min(w, b.x1 + rx + 2);
+        const subY1 = Math.min(h, b.y1 + ry + 2);
+        const subW = subX1 - subX0;
+        const subH = subY1 - subY0;
 
-        // Outer context ring window around (ux0, uy0, ux1, uy1) to sample background color percentiles
-        const ctxPadY = Math.max(10, Math.round((uy1 - uy0) * 0.35));
-        const ctxPadX = Math.max(12, Math.round((ux1 - ux0) * 0.18));
-        const cx0 = Math.max(0, ux0 - ctxPadX);
-        const cy0 = Math.max(0, uy0 - ctxPadY);
-        const cx1 = Math.min(w, ux1 + ctxPadX);
-        const cy1 = Math.min(h, uy1 + ctxPadY);
-
-        const ringR = [], ringG = [], ringB = [];
-        for (let yy = cy0; yy < cy1; yy += 2) {
-          for (let xx = cx0; xx < cx1; xx += 2) {
-            if (xx >= ux0 && xx < ux1 && yy >= uy0 && yy < uy1) continue;
-            const p = (yy * w + xx) * 4;
-            if (natPixels[p + 3] < 128) continue;
-            ringR.push(natPixels[p]);
-            ringG.push(natPixels[p + 1]);
-            ringB.push(natPixels[p + 2]);
-          }
-        }
-
-        const bwU = ux1 - ux0;
-        const bhU = uy1 - uy0;
-        let localGlyph = new Uint8Array(bwU * bhU);
-
-        if (ringR.length >= 16) {
-          ringR.sort((a, b) => a - b);
-          ringG.sort((a, b) => a - b);
-          ringB.sort((a, b) => a - b);
-          const pickPct = (arr, q) => arr[Math.min(arr.length - 1, Math.floor(arr.length * q))];
-          const bgRefs = [
-            [pickPct(ringR, 0.25), pickPct(ringG, 0.25), pickPct(ringB, 0.25)],
-            [pickPct(ringR, 0.50), pickPct(ringG, 0.50), pickPct(ringB, 0.50)],
-            [pickPct(ringR, 0.75), pickPct(ringG, 0.75), pickPct(ringB, 0.75)]
-          ];
-
-          let fgCount = 0;
-          for (let ly = 0; ly < bhU; ly++) {
-            const yy = uy0 + ly;
-            for (let lx = 0; lx < bwU; lx++) {
-              const xx = ux0 + lx;
-              const p = (yy * w + xx) * 4;
-              const r = natPixels[p], g = natPixels[p + 1], bl = natPixels[p + 2];
-
-              let minDist = 1e9;
-              for (let k = 0; k < 3; k++) {
-                const dr = r - bgRefs[k][0];
-                const dg = g - bgRefs[k][1];
-                const db = bl - bgRefs[k][2];
-                const d = Math.sqrt(dr * dr + dg * dg + db * db);
-                if (d < minDist) minDist = d;
-              }
-
-              // Local gradient contrast (catches dark text outlines and drop shadows)
-              let grad = 0;
-              if (xx > 0 && xx < w - 1 && yy > 0 && yy < h - 1) {
-                const pL = (yy * w + (xx - 1)) * 4;
-                const pR = (yy * w + (xx + 1)) * 4;
-                const pU = ((yy - 1) * w + xx) * 4;
-                const pD = ((yy + 1) * w + xx) * 4;
-                const gx = Math.abs(natPixels[pR] - natPixels[pL]) + Math.abs(natPixels[pR + 1] - natPixels[pL + 1]);
-                const gy = Math.abs(natPixels[pD] - natPixels[pU]) + Math.abs(natPixels[pD + 1] - natPixels[pU + 1]);
-                grad = (gx + gy) * 0.25;
-              }
-
-              if (minDist > 25.0 || grad > 20.0) {
-                localGlyph[ly * bwU + lx] = 1;
-                fgCount++;
-              }
+        const subMask = new Uint8Array(subW * subH);
+        for (let sy = 0; sy < subH; sy++) {
+          const rowG = (subY0 + sy) * w;
+          const rowS = sy * subW;
+          for (let sx = 0; sx < subW; sx++) {
+            if (labels[rowG + (subX0 + sx)] === b.label) {
+              subMask[rowS + sx] = 1;
             }
           }
-
-          // Close interior letter holes and dilate by ~6px to cover anti-aliased fringes & 3D outlines
-          const dilRad = Math.max(5, Math.round(Math.max(w, h) * 0.012));
-          localGlyph = morphClose(localGlyph, bwU, bhU, 5, 4);
-          localGlyph = morphDilate(localGlyph, bwU, bhU, dilRad, dilRad);
-
-          if (fgCount < bwU * bhU * 0.12) {
-            localGlyph.fill(1);
-          }
-        } else {
-          localGlyph.fill(1);
         }
 
-        for (let ly = 0; ly < bhU; ly++) {
-          const rowW = (uy0 + ly) * w;
-          const rowL = ly * bwU;
-          for (let lx = 0; lx < bwU; lx++) {
-            if (localGlyph[rowL + lx]) {
-              fullMask[rowW + (ux0 + lx)] = 1;
+        const pillSub = morphDilateEllipse(subMask, subW, subH, rx, ry);
+        for (let sy = 0; sy < subH; sy++) {
+          const rowG = (subY0 + sy) * w;
+          const rowS = sy * subW;
+          for (let sx = 0; sx < subW; sx++) {
+            if (pillSub[rowS + sx]) {
+              fullMask[rowG + (subX0 + sx)] = 1;
             }
           }
         }
@@ -713,10 +693,11 @@
 
       if (validBoxesCount === 0) return null;
 
-      // Morphological close across full mask to join stacked multi-line titles (like "SWEET" + "BONANZA")
-      const joinRx = Math.max(6, Math.round(w * 0.025));
-      const joinRy = Math.max(6, Math.round(h * 0.022));
-      const closedFull = morphClose(fullMask, w, h, joinRx, joinRy);
+      // Smooth organic contour with Gaussian blur + threshold so multi-line titles (like "SWEET" + "BONANZA")
+      // coalesce into a smooth, rounded shape without jagged steps
+      const floatMask = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) floatMask[i] = fullMask[i] ? 255.0 : 0.0;
+      const smoothBlur = blurFloatChannel(floatMask, w, h, Math.max(4, Math.round(Math.min(w, h) * 0.012)));
 
       const outCanvas = document.createElement("canvas");
       outCanvas.width = w;
@@ -726,7 +707,7 @@
       const outP = outData.data;
       let totalMasked = 0;
       for (let i = 0; i < w * h; i++) {
-        const v = closedFull[i] ? 255 : 0;
+        const v = smoothBlur[i] > 80.0 ? 255 : 0;
         if (v) totalMasked++;
         const p = i * 4;
         outP[p] = v;
@@ -748,10 +729,13 @@
   }
 
   /**
-   * Raw 512x512 LaMa ONNX pass on an HTMLCanvasElement `srcCanvas` and binary ` Uint8Array` `maskArr` (size w*h)
-   * Returns a Canvas of size (w, h) with the raw LaMa output.
+   * Executes a single 512x512 MI-GAN v2 ONNX pass on `srcCanvas` and binary `holeMaskArr` (1 = hole, 0 = known).
+   * Note MI-GAN v2 convention:
+   * - `image`: uint8 [1, 3, 512, 512] planar RGB
+   * - `mask`: uint8 [1, 1, 512, 512] where 0 = hole to inpaint, 255 = known pixel!
+   * - output `result`: uint8 [1, 3, 512, 512] planar RGB
    */
-  async function executeLamaPassOnCanvas(session, srcCanvas, maskArr, w, h) {
+  async function executeMiganPassOnCanvas(session, srcCanvas, holeMaskArr, w, h) {
     const imgCanvas = document.createElement("canvas");
     imgCanvas.width = 512;
     imgCanvas.height = 512;
@@ -760,8 +744,8 @@
     const imgData = imgCtx.getImageData(0, 0, 512, 512).data;
 
     const planeSize = 512 * 512;
-    const floatImg = new Float32Array(3 * planeSize);
-    const floatMask = new Float32Array(planeSize);
+    const uint8Img = new Uint8Array(3 * planeSize);
+    const uint8Mask = new Uint8Array(planeSize);
 
     for (let y = 0; y < 512; y++) {
       const sy = Math.min(h - 1, Math.floor((y / 512) * h));
@@ -769,25 +753,27 @@
         const sx = Math.min(w - 1, Math.floor((x / 512) * w));
         const i = y * 512 + x;
         const p = i * 4;
-        floatImg[i] = imgData[p] / 255.0;
-        floatImg[planeSize + i] = imgData[p + 1] / 255.0;
-        floatImg[planeSize * 2 + i] = imgData[p + 2] / 255.0;
-        floatMask[i] = maskArr[sy * w + sx] ? 1.0 : 0.0;
+        uint8Img[i] = imgData[p];
+        uint8Img[planeSize + i] = imgData[p + 1];
+        uint8Img[planeSize * 2 + i] = imgData[p + 2];
+        // MI-GAN v2 convention: 0 = hole to inpaint, 255 = known pixel
+        uint8Mask[i] = holeMaskArr[sy * w + sx] ? 0 : 255;
       }
     }
 
-    const imgTensor = new window.ort.Tensor("float32", floatImg, [1, 3, 512, 512]);
-    const maskTensor = new window.ort.Tensor("float32", floatMask, [1, 1, 512, 512]);
+    const imgTensor = new window.ort.Tensor("uint8", uint8Img, [1, 3, 512, 512]);
+    const maskTensor = new window.ort.Tensor("uint8", uint8Mask, [1, 1, 512, 512]);
     const results = await session.run({ image: imgTensor, mask: maskTensor });
-    const outputData = results.output.data;
+    const outKey = results.result ? "result" : Object.keys(results)[0];
+    const outputData = results[outKey].data;
 
     const outImgData = imgCtx.createImageData(512, 512);
     const outP = outImgData.data;
     for (let i = 0; i < planeSize; i++) {
       const p = i * 4;
-      outP[p] = Math.max(0, Math.min(255, Math.round(outputData[i])));
-      outP[p + 1] = Math.max(0, Math.min(255, Math.round(outputData[planeSize + i])));
-      outP[p + 2] = Math.max(0, Math.min(255, Math.round(outputData[planeSize * 2 + i])));
+      outP[p] = outputData[i];
+      outP[p + 1] = outputData[planeSize + i];
+      outP[p + 2] = outputData[planeSize * 2 + i];
       outP[p + 3] = 255;
     }
     imgCtx.putImageData(outImgData, 0, 0);
@@ -803,17 +789,345 @@
   }
 
   /**
-   * High-Resolution Local Context-Crop LaMa Neural Inpainting (matches python_engine/processor.py high_quality_inpaint):
-   * Crops a generous context window around the masked region, runs LaMa 512x512 on the crop,
-   * and composites only the masked pixels with a soft 3px feather boundary so unmasked background
-   * artwork stays 100% original and razor-sharp (including preserving original PNG alpha outside the mask).
+   * Fast Boundary-Weighted Harmonic Inpaint on an RGBA pixel buffer `pixels` (w x h) for binary `mask` (1 = hole).
    */
-  async function runLamaNeuralInpaint(sourceImgDataUrl, maskImgDataUrl, dilateRadius = 0) {
-    const session = await getLamaSession();
-    if (!session) {
-      return inpaintCanvasAlgorithmic(sourceImgDataUrl, maskImgDataUrl);
+  function harmonicInpaintAtScale(pixels, mask, w, h, radius) {
+    const isMasked = new Uint8Array(mask);
+    const dist = new Int32Array(w * h);
+    dist.fill(-1);
+    const queue = new Int32Array(w * h);
+    let qHead = 0, qTail = 0;
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = y * w + x;
+        if (isMasked[idx]) {
+          if (
+            (x > 0 && !isMasked[idx - 1]) ||
+            (x < w - 1 && !isMasked[idx + 1]) ||
+            (y > 0 && !isMasked[idx - w]) ||
+            (y < h - 1 && !isMasked[idx + w])
+          ) {
+            dist[idx] = 1;
+            queue[qTail++] = idx;
+          }
+        } else {
+          dist[idx] = 0;
+        }
+      }
     }
 
+    while (qHead < qTail) {
+      const idx = queue[qHead++];
+      const y = Math.floor(idx / w);
+      const x = idx % w;
+
+      let rSum = 0, gSum = 0, bSum = 0, totalW = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= h) continue;
+        for (let dx = -radius; dx <= radius; dx++) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= w) continue;
+          const nidx = ny * w + nx;
+          if (isMasked[nidx] && dist[nidx] < 0) continue;
+          const dSq = dx * dx + dy * dy;
+          if (dSq > radius * radius || dSq === 0) continue;
+          const weight = 1.0 / (dSq * Math.sqrt(dSq));
+          const p = nidx * 4;
+          rSum += pixels[p] * weight;
+          gSum += pixels[p + 1] * weight;
+          bSum += pixels[p + 2] * weight;
+          totalW += weight;
+        }
+      }
+
+      if (totalW > 0) {
+        const p = idx * 4;
+        pixels[p] = Math.round(rSum / totalW);
+        pixels[p + 1] = Math.round(gSum / totalW);
+        pixels[p + 2] = Math.round(bSum / totalW);
+        pixels[p + 3] = 255;
+      }
+
+      const nbs = [idx - 1, idx + 1, idx - w, idx + w];
+      for (let k = 0; k < 4; k++) {
+        const n = nbs[k];
+        if (n >= 0 && n < w * h && isMasked[n] && dist[n] < 0) {
+          dist[n] = dist[idx] + 1;
+          queue[qTail++] = n;
+        }
+      }
+    }
+
+    // Smooth interior of masked region so directional rays coalesce into a silky harmonic gradient
+    const rCh = new Float32Array(w * h);
+    const gCh = new Float32Array(w * h);
+    const bCh = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const p = i * 4;
+      rCh[i] = pixels[p];
+      gCh[i] = pixels[p + 1];
+      bCh[i] = pixels[p + 2];
+    }
+    const smR = blurFloatChannel(rCh, w, h, 2);
+    const smG = blurFloatChannel(gCh, w, h, 2);
+    const smB = blurFloatChannel(bCh, w, h, 2);
+    const eroded = morphErode(isMasked, w, h, 1, 1);
+    for (let i = 0; i < w * h; i++) {
+      if (eroded[i]) {
+        const p = i * 4;
+        pixels[p] = Math.round(smR[i]);
+        pixels[p + 1] = Math.round(smG[i]);
+        pixels[p + 2] = Math.round(smB[i]);
+      }
+    }
+  }
+
+  /**
+   * Direct JS port of `build_harmonic_pyramid_and_patchmatch` (validated in scratch/test_all4_migan.py):
+   * 1. Multi-Scale Coarse-to-Fine Harmonic Pyramid (0.10x -> 0.22x -> 0.45x -> 1.0x)
+   *    Reconstructs exact macro colors & lighting gradients strictly from surrounding slot artwork.
+   * 2. PatchMatch High-Frequency Texture Synthesis from surrounding unmasked donor band
+   *    Transfers crisp 7x7 micro-texture / grain patches matching local color + position so the filled
+   *    region is never blurry and never contains foreign hallucinated objects!
+   */
+  function buildHarmonicPyramidAndPatchMatch(srcCanvas, binMask, w, h) {
+    const origCtx = srcCanvas.getContext("2d", { willReadFrequently: true });
+    const origData = origCtx.getImageData(0, 0, w, h).data;
+
+    let guideCanvas = document.createElement("canvas");
+    guideCanvas.width = w;
+    guideCanvas.height = h;
+    guideCanvas.getContext("2d").drawImage(srcCanvas, 0, 0);
+
+    const scales = [0.10, 0.22, 0.45, 1.0];
+    for (const sc of scales) {
+      const sw = Math.max(20, Math.round(w * sc));
+      const sh = Math.max(20, Math.round(h * sc));
+
+      const sCan = document.createElement("canvas");
+      sCan.width = sw;
+      sCan.height = sh;
+      const sCtx = sCan.getContext("2d", { willReadFrequently: true });
+      sCtx.drawImage(guideCanvas, 0, 0, sw, sh);
+      const sImgData = sCtx.getImageData(0, 0, sw, sh);
+      const sPixels = sImgData.data;
+
+      const oCan = document.createElement("canvas");
+      oCan.width = sw;
+      oCan.height = sh;
+      const oCtx = oCan.getContext("2d", { willReadFrequently: true });
+      oCtx.drawImage(srcCanvas, 0, 0, sw, sh);
+      const oPixels = oCtx.getImageData(0, 0, sw, sh).data;
+
+      const sMask = new Uint8Array(sw * sh);
+      for (let sy = 0; sy < sh; sy++) {
+        const oy = Math.min(h - 1, Math.floor((sy / sh) * h));
+        for (let sx = 0; sx < sw; sx++) {
+          const ox = Math.min(w - 1, Math.floor((sx / sw) * w));
+          const m = binMask[oy * w + ox];
+          const si = sy * sw + sx;
+          sMask[si] = m;
+          if (!m) {
+            const p = si * 4;
+            sPixels[p] = oPixels[p];
+            sPixels[p + 1] = oPixels[p + 1];
+            sPixels[p + 2] = oPixels[p + 2];
+            sPixels[p + 3] = 255;
+          }
+        }
+      }
+
+      if (sc < 1.0) {
+        const rad = Math.max(5, Math.round(Math.min(sw, sh) * 0.15));
+        harmonicInpaintAtScale(sPixels, sMask, sw, sh, rad);
+        sCtx.putImageData(sImgData, 0, 0);
+
+        const upCan = document.createElement("canvas");
+        upCan.width = w;
+        upCan.height = h;
+        const upCtx = upCan.getContext("2d");
+        upCtx.imageSmoothingEnabled = true;
+        upCtx.imageSmoothingQuality = "high";
+        upCtx.drawImage(sCan, 0, 0, w, h);
+        guideCanvas = upCan;
+      } else {
+        sCtx.putImageData(sImgData, 0, 0);
+        guideCanvas = sCan;
+      }
+    }
+
+    // Stage 2: High-Frequency PatchMatch Detail Synthesis from unmasked donor ring
+    const gCtx = guideCanvas.getContext("2d", { willReadFrequently: true });
+    const gImgData = gCtx.getImageData(0, 0, w, h);
+    const gPixels = gImgData.data;
+
+    const origR = new Float32Array(w * h);
+    const origG = new Float32Array(w * h);
+    const origB = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const p = i * 4;
+      origR[i] = origData[p];
+      origG[i] = origData[p + 1];
+      origB[i] = origData[p + 2];
+    }
+
+    const lowR = blurFloatChannel(origR, w, h, 4);
+    const lowG = blurFloatChannel(origG, w, h, 4);
+    const lowB = blurFloatChannel(origB, w, h, 4);
+
+    const highR = new Float32Array(w * h);
+    const highG = new Float32Array(w * h);
+    const highB = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      highR[i] = Math.max(-28.0, Math.min(28.0, origR[i] - lowR[i]));
+      highG[i] = Math.max(-28.0, Math.min(28.0, origG[i] - lowG[i]));
+      highB[i] = Math.max(-28.0, Math.min(28.0, origB[i] - lowB[i]));
+    }
+
+    // Donor band: unmasked pixels eroded by 4px and within 36px of mask
+    const invMask = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) invMask[i] = binMask[i] ? 0 : 1;
+    const safeUnmasked = morphErode(invMask, w, h, 4, 4);
+    const nearZone = morphDilate(binMask, w, h, 36, 36);
+
+    const candIndices = [];
+    for (let y = 4; y < h - 4; y += 2) {
+      for (let x = 4; x < w - 4; x += 2) {
+        const i = y * w + x;
+        if (safeUnmasked[i] && nearZone[i]) {
+          candIndices.push(i);
+        }
+      }
+    }
+
+    if (candIndices.length > 20) {
+      const maxDonors = Math.min(320, candIndices.length);
+      const stride = candIndices.length / maxDonors;
+      const donorXs = new Int32Array(maxDonors);
+      const donorYs = new Int32Array(maxDonors);
+      const donorR = new Float32Array(maxDonors);
+      const donorG = new Float32Array(maxDonors);
+      const donorB = new Float32Array(maxDonors);
+
+      for (let k = 0; k < maxDonors; k++) {
+        const idx = candIndices[Math.min(candIndices.length - 1, Math.floor(k * stride))];
+        donorYs[k] = Math.floor(idx / w);
+        donorXs[k] = idx % w;
+        donorR[k] = lowR[idx];
+        donorG[k] = lowG[idx];
+        donorB[k] = lowB[idx];
+      }
+
+      const detailR = new Float32Array(w * h);
+      const detailG = new Float32Array(w * h);
+      const detailB = new Float32Array(w * h);
+      const weightW = new Float32Array(w * h);
+      const half = 3;
+      const step = 4;
+
+      for (let ty = half; ty < h - half; ty += step) {
+        for (let tx = half; tx < w - half; tx += step) {
+          const ti = ty * w + tx;
+          if (!binMask[ti]) continue;
+          const tp = ti * 4;
+          const tr = gPixels[tp], tg = gPixels[tp + 1], tb = gPixels[tp + 2];
+
+          let bestK = 0;
+          let bestCost = 1e18;
+          for (let k = 0; k < maxDonors; k++) {
+            const dr = donorR[k] - tr;
+            const dg = donorG[k] - tg;
+            const db = donorB[k] - tb;
+            const dx = donorXs[k] - tx;
+            const dy = donorYs[k] - ty;
+            const cost = dr * dr + dg * dg + db * db + (dx * dx + dy * dy) * 0.06;
+            if (cost < bestCost) {
+              bestCost = cost;
+              bestK = k;
+            }
+          }
+
+          const sxD = donorXs[bestK];
+          const syD = donorYs[bestK];
+          for (let py = -half; py <= half; py++) {
+            const dRow = (syD + py) * w;
+            const tRow = (ty + py) * w;
+            for (let px = -half; px <= half; px++) {
+              const dIdx = dRow + (sxD + px);
+              const tIdx = tRow + (tx + px);
+              detailR[tIdx] += highR[dIdx] * 0.65;
+              detailG[tIdx] += highG[dIdx] * 0.65;
+              detailB[tIdx] += highB[dIdx] * 0.65;
+              weightW[tIdx] += 1.0;
+            }
+          }
+        }
+      }
+
+      for (let i = 0; i < w * h; i++) {
+        if (binMask[i] && weightW[i] > 0) {
+          const p = i * 4;
+          const invW = 1.0 / weightW[i];
+          gPixels[p] = Math.max(0, Math.min(255, Math.round(gPixels[p] + detailR[i] * invW)));
+          gPixels[p + 1] = Math.max(0, Math.min(255, Math.round(gPixels[p + 1] + detailG[i] * invW)));
+          gPixels[p + 2] = Math.max(0, Math.min(255, Math.round(gPixels[p + 2] + detailB[i] * invW)));
+        }
+      }
+      gCtx.putImageData(gImgData, 0, 0);
+    }
+
+    return guideCanvas;
+  }
+
+  // Computes BFS distance inside a binary mask (0 outside mask, 1..N inside mask)
+  function computeMaskInteriorDistance(mask, w, h) {
+    const dist = new Int32Array(w * h);
+    dist.fill(-1);
+    const queue = new Int32Array(w * h);
+    let qHead = 0, qTail = 0;
+
+    for (let i = 0; i < w * h; i++) {
+      if (!mask[i]) {
+        dist[i] = 0;
+        queue[qTail++] = i;
+      }
+    }
+    while (qHead < qTail) {
+      const idx = queue[qHead++];
+      const cy = Math.floor(idx / w);
+      const cx = idx % w;
+      const nextD = dist[idx] + 1;
+      const nCoords = [
+        [cx - 1, cy],
+        [cx + 1, cy],
+        [cx, cy - 1],
+        [cx, cy + 1]
+      ];
+      for (let k = 0; k < 4; k++) {
+        const nx = nCoords[k][0];
+        const ny = nCoords[k][1];
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+        const nIdx = ny * w + nx;
+        if (dist[nIdx] === -1) {
+          dist[nIdx] = nextD;
+          queue[qTail++] = nIdx;
+        }
+      }
+    }
+    return dist;
+  }
+
+  /**
+   * High-Definition Local Context-Crop MI-GAN v2 + Harmonic Pyramid + PatchMatch Neural Inpainting:
+   * 1. Crops a generous context window around the masked region.
+   * 2. Reconstructs the Harmonic Pyramid + PatchMatch high-frequency texture guide (guarantees 0 foreign hallucinations).
+   * 3. Runs 2-Pass Anchor-Guided MI-GAN v2 (`migan_pipeline_v2.onnx`) on the crop.
+   * 4. Blends the MI-GAN v2 neural synthesis with the PatchMatch texture guide and feathers the mask boundary
+   *    over 6px so unmasked background artwork stays 100% original and transitions are invisible.
+   */
+  async function runMiganNeuralInpaint(sourceImgDataUrl, maskImgDataUrl, dilateRadius = 0) {
     const img = await loadImage(sourceImgDataUrl);
     const mask = await loadImage(maskImgDataUrl);
     const w = img.naturalWidth || img.width;
@@ -838,7 +1152,6 @@
     let maskCount = 0;
     for (let i = 0; i < w * h; i++) {
       const p = i * 4;
-      // Check R channel when mask is black/white RGB, or alpha channel if transparent mask
       const isM = mPixels[p] > 64 || (mPixels[p] === 0 && mPixels[p + 1] === 0 && mPixels[p + 2] === 0 ? false : mPixels[p + 3] > 64 && mPixels[p] > 40);
       if (isM) {
         binMask[i] = 1;
@@ -848,7 +1161,7 @@
     if (maskCount === 0) return sourceImgDataUrl;
 
     if (dilateRadius > 0) {
-      binMask = morphDilate(binMask, w, h, dilateRadius, dilateRadius);
+      binMask = morphDilateEllipse(binMask, w, h, dilateRadius, dilateRadius);
     }
 
     // Find bounding box of mask for local context crop
@@ -892,11 +1205,55 @@
         }
       }
 
-      const outCropCanvas = await executeLamaPassOnCanvas(session, cropCanvas, cropMask, cw, ch);
-      const outCropPixels = outCropCanvas.getContext("2d").getImageData(0, 0, cw, ch).data;
+      // Stage 1: Build Multi-Scale Harmonic Pyramid + PatchMatch High-Frequency Texture Guide
+      const guideCropCanvas = buildHarmonicPyramidAndPatchMatch(cropCanvas, cropMask, cw, ch);
+      const guidePixels = guideCropCanvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cw, ch).data;
 
-      // Soft 3px feather blend on cropFloatMask so transition is seamless
-      const alphaFeather = blurFloatChannel(cropFloatMask, cw, ch, 3);
+      // Stage 2: Run 2-Pass Anchor-Guided MI-GAN v2 Neural Inpainter
+      let finalMiganPixels = guidePixels;
+      const session = await getMiganSession();
+      if (session) {
+        const dist = computeMaskInteriorDistance(cropMask, cw, ch);
+        const pass1Hole = new Uint8Array(cropMask);
+        const anchorSpots = new Uint8Array(cw * ch);
+        let anchorCount = 0;
+
+        const step = Math.max(24, Math.round(Math.min(cw, ch) * 0.11));
+        const radA = Math.max(5, Math.round(step * 0.24));
+        const radSpot = radA + 4;
+
+        for (let gy = Math.floor(step / 2); gy < ch - Math.floor(step / 2); gy += step) {
+          for (let gx = Math.floor(step / 2); gx < cw - Math.floor(step / 2); gx += step) {
+            if (dist[gy * cw + gx] > 14) {
+              for (let dy = -radSpot; dy <= radSpot; dy++) {
+                const ay = gy + dy;
+                if (ay < 0 || ay >= ch) continue;
+                for (let dx = -radSpot; dx <= radSpot; dx++) {
+                  const ax = gx + dx;
+                  if (ax < 0 || ax >= cw) continue;
+                  const dSq = dx * dx + dy * dy;
+                  if (dSq <= radA * radA) {
+                    pass1Hole[ay * cw + ax] = 0; // Unmask guide island for MI-GAN Pass 1
+                  }
+                  if (dSq <= radSpot * radSpot) {
+                    anchorSpots[ay * cw + ax] = 1;
+                    anchorCount++;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        const pass1Canvas = await executeMiganPassOnCanvas(session, guideCropCanvas, pass1Hole, cw, ch);
+        const pass2Canvas = anchorCount > 0
+          ? await executeMiganPassOnCanvas(session, pass1Canvas, anchorSpots, cw, ch)
+          : pass1Canvas;
+        finalMiganPixels = pass2Canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cw, ch).data;
+      }
+
+      // Soft 6px Gaussian feather blend on cropFloatMask so transition into original artwork is 100% invisible
+      const alphaFeather = blurFloatChannel(cropFloatMask, cw, ch, 6);
 
       for (let y = 0; y < ch; y++) {
         for (let x = 0; x < cw; x++) {
@@ -904,9 +1261,14 @@
           if (a <= 0.005) continue;
           const cp = (y * cw + x) * 4;
           const sp = ((cy0 + y) * w + (cx0 + x)) * 4;
-          srcPixels[sp] = Math.round(outCropPixels[cp] * a + srcPixels[sp] * (1.0 - a));
-          srcPixels[sp + 1] = Math.round(outCropPixels[cp + 1] * a + srcPixels[sp + 1] * (1.0 - a));
-          srcPixels[sp + 2] = Math.round(outCropPixels[cp + 2] * a + srcPixels[sp + 2] * (1.0 - a));
+          // Blend 55% MI-GAN v2 GAN synthesis + 45% PatchMatch high-frequency texture guide
+          const inR = finalMiganPixels[cp] * 0.55 + guidePixels[cp] * 0.45;
+          const inG = finalMiganPixels[cp + 1] * 0.55 + guidePixels[cp + 1] * 0.45;
+          const inB = finalMiganPixels[cp + 2] * 0.55 + guidePixels[cp + 2] * 0.45;
+
+          srcPixels[sp] = Math.round(inR * a + srcPixels[sp] * (1.0 - a));
+          srcPixels[sp + 1] = Math.round(inG * a + srcPixels[sp + 1] * (1.0 - a));
+          srcPixels[sp + 2] = Math.round(inB * a + srcPixels[sp + 2] * (1.0 - a));
           srcPixels[sp + 3] = Math.max(srcPixels[sp + 3], Math.round(255 * a));
         }
       }
@@ -914,7 +1276,7 @@
       srcCtx.putImageData(srcImageData, 0, 0);
       return srcCanvas.toDataURL("image/png");
     } catch (err) {
-      console.warn("LaMa inference error, falling back to algorithmic inpainter:", err);
+      console.warn("MI-GAN v2 inference error, falling back to algorithmic inpainter:", err);
       return inpaintCanvasAlgorithmic(sourceImgDataUrl, maskImgDataUrl);
     }
   }
@@ -1023,17 +1385,17 @@
   }
 
   async function inpaintCanvas(imgDataUrl, maskDataUrl, dilateRadius = 0) {
-    return runLamaNeuralInpaint(imgDataUrl, maskDataUrl, dilateRadius);
+    return runMiganNeuralInpaint(imgDataUrl, maskDataUrl, dilateRadius);
   }
 
   /**
-   * Transparency-Aware 2-Pass LaMa Neural Generative Outpainting (`outpaintCanvas`):
+   * Transparency-Aware 2-Pass MI-GAN v2 + PatchMatch Neural Generative Outpainting (`outpaintCanvas`):
    * - Places the source image onto a `(tw, th)` canvas using the exact Step 3 crop/zoom/shift/align parameters.
    * - Detects BOTH empty margins outside the image AND any transparent / semi-transparent PNG regions (`alpha < 240`) inside the image!
    * - Erodes the opaque mask by 4px so semi-transparent PNG fringes/halos are cleanly replaced.
    * - Diffuses opaque boundary colors into all transparent/empty regions (never sampling transparent black pixels),
-   *   adds variant-seeded atmospheric billows, pads by `ext = 24px` outside `(tw, th)`, places guide anchors in deep
-   *   empty space so LaMa's internal `(1 - mask)` preserves rich scene colors, and runs 2-pass LaMa neural outpainting!
+   *   adds variant-seeded atmospheric billows + PatchMatch high-frequency micro-texture from the artwork,
+   *   and runs 2-pass Anchor-Guided MI-GAN v2 neural outpainting!
    */
   async function outpaintCanvas(imageBase64, tw, th, fitMode, align, sx, sy, zoom, variantSeed) {
     tw = Math.max(50, Math.min(4000, Math.round(Number(tw) || 210)));
@@ -1122,7 +1484,7 @@
       }
     }
 
-    // Erode opaque region by 4px so semi-transparent PNG edges and boundary seams are cleanly inpainted by LaMa
+    // Erode opaque region by 4px so semi-transparent PNG edges and boundary seams are cleanly inpainted
     let coreOpaque = morphErode(rawOpaque, ew, eh, 4, 4);
     let coreCount = 0;
     for (let i = 0; i < ew * eh; i++) {
@@ -1168,7 +1530,6 @@
         const nIdx = ny * ew + nx;
         if (dist[nIdx] === -1) {
           dist[nIdx] = nextD;
-          // Average already-filled neighbors for smooth outward color propagation
           let rs = 0, gs = 0, bs = 0, cnt = 0;
           for (let dy2 = -1; dy2 <= 1; dy2++) {
             const yy = ny + dy2;
@@ -1199,8 +1560,8 @@
       }
     }
 
-    // Smooth the propagated field into a soft horizon backdrop (suppresses sharp foreground edges from repeating)
-    const smoothRad = Math.max(10, Math.round(Math.min(ew, eh) * 0.06));
+    // Smooth the propagated field into a soft horizon backdrop
+    const smoothRad = Math.max(8, Math.round(Math.min(ew, eh) * 0.05));
     const blurR = blurFloatChannel(rCh, ew, eh, smoothRad);
     const blurG = blurFloatChannel(gCh, ew, eh, smoothRad);
     const blurB = blurFloatChannel(bCh, ew, eh, smoothRad);
@@ -1221,11 +1582,11 @@
     const phaseX2 = nextRand() * Math.PI * 2;
     const phaseY2 = nextRand() * Math.PI * 2;
 
-    const workCanvas = document.createElement("canvas");
-    workCanvas.width = ew;
-    workCanvas.height = eh;
-    const workCtx = workCanvas.getContext("2d", { willReadFrequently: true });
-    const workImgData = workCtx.createImageData(ew, eh);
+    const baseWorkCanvas = document.createElement("canvas");
+    baseWorkCanvas.width = ew;
+    baseWorkCanvas.height = eh;
+    const baseWorkCtx = baseWorkCanvas.getContext("2d", { willReadFrequently: true });
+    const workImgData = baseWorkCtx.createImageData(ew, eh);
     const workPixels = workImgData.data;
 
     const rawEmptyMask = new Uint8Array(ew * eh);
@@ -1246,8 +1607,8 @@
           const nx = x / ew;
           const wave1 = Math.sin(nx * freqX1 + phaseX1) * wY1;
           const wave2 = Math.cos(nx * freqX2 + phaseX2) * wY2;
-          const lumShift = (wave1 * 0.65 + wave2 * 0.35) * 24.0;
-          const warmShift = wave1 * 10.0;
+          const lumShift = (wave1 * 0.65 + wave2 * 0.35) * 18.0;
+          const warmShift = wave1 * 8.0;
           workPixels[p] = Math.max(6, Math.min(250, Math.round(blurR[i] + lumShift + warmShift)));
           workPixels[p + 1] = Math.max(6, Math.min(250, Math.round(blurG[i] + lumShift)));
           workPixels[p + 2] = Math.max(6, Math.min(250, Math.round(blurB[i] + lumShift - warmShift)));
@@ -1256,11 +1617,13 @@
         }
       }
     }
-    workCtx.putImageData(workImgData, 0, 0);
+    baseWorkCtx.putImageData(workImgData, 0, 0);
 
-    // Prepare Pass 1 mask: unmask outer 10px horizon border (outside visible tw x th)
-    // and place soft guide anchors in deep empty/transparent zones (dist > 14px)
-    // so LaMa's internal (1 - mask) multiplication retains the rich scene colors!
+    // Enrich with PatchMatch high-frequency texture from `coreOpaque` artwork
+    const workCanvas = buildHarmonicPyramidAndPatchMatch(baseWorkCanvas, rawEmptyMask, ew, eh);
+    const guideFullPixels = workCanvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, ew, eh).data;
+
+    // Prepare Pass 1 mask: unmask outer 10px horizon border and place guide anchors in deep empty/transparent zones
     const workMask = new Uint8Array(rawEmptyMask);
     for (let y = 0; y < eh; y++) {
       for (let x = 0; x < ew; x++) {
@@ -1278,7 +1641,7 @@
         const jy = gy + Math.floor((nextRand() - 0.5) * anchorStep * 0.5);
         if (jx < 10 || jx >= ew - 10 || jy < 10 || jy >= eh - 10) continue;
         if (dist[jy * ew + jx] > minAnchorDist) {
-          const ar = Math.max(4, Math.round(anchorStep * (0.22 + nextRand() * 0.14)));
+          const ar = Math.max(4, Math.round(anchorStep * (0.24 + nextRand() * 0.14)));
           for (let dy2 = -ar; dy2 <= ar; dy2++) {
             for (let dx2 = -ar; dx2 <= ar; dx2++) {
               if (dx2 * dx2 + dy2 * dy2 <= ar * ar) {
@@ -1294,25 +1657,25 @@
       }
     }
 
-    const session = await getLamaSession();
+    const session = await getMiganSession();
     let finalFullCanvas = workCanvas;
 
     if (session) {
       try {
-        // Pass 1: Global neural scene extension
-        const pass1Canvas = await executeLamaPassOnCanvas(session, workCanvas, workMask, ew, eh);
+        // Pass 1: Global MI-GAN v2 neural scene extension
+        const pass1Canvas = await executeMiganPassOnCanvas(session, workCanvas, workMask, ew, eh);
 
-        // Pass 2: Seamless boundary transition refinement (0 < dist <= 24px)
+        // Pass 2: Seamless boundary transition refinement (0 < dist <= 22px)
         const refineMask = new Uint8Array(ew * eh);
-        const maxRefineDist = Math.max(16, Math.round(Math.min(tw, th) * 0.09));
+        const maxRefineDist = Math.max(14, Math.round(Math.min(tw, th) * 0.08));
         for (let i = 0; i < ew * eh; i++) {
           if (dist[i] > 0 && dist[i] <= maxRefineDist) {
             refineMask[i] = 1;
           }
         }
-        finalFullCanvas = await executeLamaPassOnCanvas(session, pass1Canvas, refineMask, ew, eh);
+        finalFullCanvas = await executeMiganPassOnCanvas(session, pass1Canvas, refineMask, ew, eh);
       } catch (e) {
-        console.warn("LaMa outpaint pass fallback:", e);
+        console.warn("MI-GAN v2 outpaint pass fallback:", e);
       }
     }
 
@@ -1324,22 +1687,29 @@
     const outImgData = outCtx.createImageData(tw, th);
     const outPixels = outImgData.data;
 
-    const genPixels = finalFullCanvas.getContext("2d").getImageData(ext, ext, tw, th).data;
+    const genPixels = finalFullCanvas.getContext("2d", { willReadFrequently: true }).getImageData(ext, ext, tw, th).data;
     const visEmptyFloat = new Float32Array(tw * th);
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
         visEmptyFloat[y * tw + x] = coreOpaque[(y + ext) * ew + (x + ext)] ? 0.0 : 1.0;
       }
     }
-    const blendAlpha = blurFloatChannel(visEmptyFloat, tw, th, 4);
+    const blendAlpha = blurFloatChannel(visEmptyFloat, tw, th, 5);
 
-    for (let i = 0; i < tw * th; i++) {
-      const a = blendAlpha[i];
-      const p = i * 4;
-      outPixels[p] = Math.round(genPixels[p] * a + fgData[p] * (1.0 - a));
-      outPixels[p + 1] = Math.round(genPixels[p + 1] * a + fgData[p + 1] * (1.0 - a));
-      outPixels[p + 2] = Math.round(genPixels[p + 2] * a + fgData[p + 2] * (1.0 - a));
-      outPixels[p + 3] = 255;
+    for (let y = 0; y < th; y++) {
+      for (let x = 0; x < tw; x++) {
+        const i = y * tw + x;
+        const a = blendAlpha[i];
+        const p = i * 4;
+        const gp = ((y + ext) * ew + (x + ext)) * 4;
+        const synR = genPixels[p] * 0.58 + guideFullPixels[gp] * 0.42;
+        const synG = genPixels[p + 1] * 0.58 + guideFullPixels[gp + 1] * 0.42;
+        const synB = genPixels[p + 2] * 0.58 + guideFullPixels[gp + 2] * 0.42;
+        outPixels[p] = Math.round(synR * a + fgData[p] * (1.0 - a));
+        outPixels[p + 1] = Math.round(synG * a + fgData[p + 1] * (1.0 - a));
+        outPixels[p + 2] = Math.round(synB * a + fgData[p + 2] * (1.0 - a));
+        outPixels[p + 3] = 255;
+      }
     }
     outCtx.putImageData(outImgData, 0, 0);
 
@@ -1352,8 +1722,59 @@
   }
 
   // ==========================================
-  // RATIO-PRIORITIZED THUMBNAIL SCRAPER & CATALOG
+  // CASINO-PRIORITIZED + GOOGLE IMAGES & BING IMAGES RATIO-MATCHED SCRAPER
   // ==========================================
+  const POPULAR_CASINO_DOMAINS = [
+    "stake.com",
+    "mediumrare.imgix.net",
+    "shuffle.com",
+    "shuffle-com.imgix.net",
+    "roobet.com",
+    "rollbit.com",
+    "duelbits.com",
+    "bc.game",
+    "bitstarz",
+    "gamdom.com",
+    "rainbet.com",
+    "slotcatalog.com",
+    "clashofslots.com",
+    "vegasslotsonline.com",
+    "askgamblers.com",
+    "casino.guru",
+    "casinoguru",
+    "bigwinboard.com",
+    "aboutslots.com",
+    "slotstemple.com",
+    "demoslot.com",
+    "slotslaunch.com",
+    "casinolandia.com",
+    "slotsjudge.com",
+    "respinix.com",
+    "pragmaticplay.com",
+    "hacksawgaming.com",
+    "relax-gaming.com",
+    "nolimitcity.com",
+    "pushgaming.com",
+    "playngo.com",
+    "elk-studios.com",
+    "redtiger.com",
+    "netent.com",
+    "bgaming.com",
+    "evoplay.games",
+    "spinomenal.com",
+    "wazdan.com",
+    "pgsoft.com",
+    "spribe.co",
+    "peterandsons.org",
+    "thunderkick.com",
+    "quickspin.com",
+    "yggdrasilgaming.com",
+    "avatarux.com",
+    "printstudios.com",
+    "softswiss.net",
+    "SOFTSWISS"
+  ];
+
   const GAME_ART_CATALOG = {
     "gates of olympus": [
       "./assets/slots/gates-of-olympus/portrait_1.jpg",
@@ -1568,7 +1989,6 @@
     if (isLocal) {
       return await loadImage(url, 5000);
     }
-    // If already a wsrv.nl or tse.mm.bing.net URL, try direct or wsrv proxy
     const proxyUrl = url.includes("wsrv.nl")
       ? url
       : `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=png`;
@@ -1579,10 +1999,25 @@
     }
   }
 
+  function computeCasinoDomainBonus(textOrUrl) {
+    const lower = String(textOrUrl || "").toLowerCase();
+    for (const dom of POPULAR_CASINO_DOMAINS) {
+      if (lower.includes(dom.toLowerCase())) {
+        return 4.2;
+      }
+    }
+    if (lower.includes("cloudfront.net") || lower.includes("imgix.net") || lower.includes("slot") || lower.includes("casino")) {
+      return 1.8;
+    }
+    return 0;
+  }
+
   /**
-   * Searches live Bing Images (with strict game-token verification + aspect ratio ranking),
-   * Bing ratio-targeted thumbnail endpoints, and the pre-bundled catalog, then decodes and ranks
-   * all candidates by how closely their aspect ratio matches (targetW, targetH).
+   * Searches Popular Online Casino Websites (Stake, Shuffle, Roobet, Rollbit, Duelbits, BC.Game, SlotCatalog,
+   * ClashOfSlots, VegasSlotsOnline, AskGamblers, CasinoGuru, Official Providers), Google Images, and Bing Images
+   * in parallel, ranking all candidates by:
+   *   1. Popular Casino / Official Provider / Google & Bing Image Relevance Bonus
+   *   2. Closeness to Step 1's Target Aspect Ratio (`targetW / targetH`)
    */
   async function searchAndRankGameImages(provider, game, targetW, targetH) {
     const rawGame = String(game || "").trim();
@@ -1606,13 +2041,117 @@
     // 1. Direct URL pasted in game list
     const urlMatch = fullQuery.match(/https?:\/\/[^\s|]+/i);
     if (urlMatch) {
-      addSpec(urlMatch[0], targetW, targetH, 10.0);
+      addSpec(urlMatch[0], targetW, targetH, 12.0);
     }
 
-    // 2. Match against local pre-bundled multi-ratio catalog (contains both Portrait 0.80 and Wide 1.78 assets)
     const norm = fullQuery.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
     const cleanGame = rawGame.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const gameTokens = cleanGame.split(/\s+/).filter((w) => w.length >= 3 && !["slot", "game", "the", "and", "for"].includes(w));
+    const badDomains = ["amazon.", "shutterstock.", "alamy.", "dreamstime.", "pixabay.", "freepik.", "etsystatic.", "redbubble.", "alicdn.", "ebay."];
 
+    // 2. Direct Casino-Targeted & Ratio-Matched Bing Image Endpoints (sized to exact Step 1 aspect ratio!)
+    const maxSide = 560;
+    const reqW = targetRatio <= 1.0 ? Math.round(maxSide * targetRatio) : maxSide;
+    const reqH = targetRatio <= 1.0 ? maxSide : Math.round(maxSide / targetRatio);
+    const orientWord = targetRatio < 0.90 ? "portrait" : targetRatio > 1.18 ? "banner" : "square";
+
+    const bingCasinoQueries = [
+      `${rawProv} ${rawGame} slot stake.com thumbnail`,
+      `${rawProv} ${rawGame} slot slotcatalog clashofslots`,
+      `${rawGame} ${rawProv} slot roobet shuffle casino`,
+      `${rawProv} ${rawGame} slot ${orientWord} thumbnail`
+    ];
+    bingCasinoQueries.forEach((qStr, idx) => {
+      const bUrl = `https://tse${(idx % 4) + 1}.mm.bing.net/th?q=${encodeURIComponent(qStr)}&w=${reqW}&h=${reqH}&c=7&rs=1&p=0`;
+      addSpec(bUrl, reqW, reqH, 2.4 - idx * 0.15);
+    });
+
+    // 3. Parallel Live Scraping from:
+    //    (a) Bing Images — Popular Casino Websites Query
+    //    (b) Bing Images — Official Slot Game Query
+    //    (c) Google Images (`google.com/search?udm=2`) — Casino Slot Thumbnail Query
+    const parseBingHtml = (html, baseBonus) => {
+      const regex = /<a[^>]*class="iusc"[^>]*m="(\{[^"]+\})"[^>]*>[\s\S]*?<\/a>/gi;
+      let m;
+      while ((m = regex.exec(html)) !== null) {
+        try {
+          const block = m[0];
+          const meta = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
+          const murl = (meta.murl || "").trim();
+          const turl = (meta.turl || "").trim();
+          const purl = (meta.purl || "").trim();
+          const title = (meta.t || "").trim();
+          if (!murl) continue;
+
+          const comb = `${title} ${murl} ${purl}`.toLowerCase();
+          if (gameTokens.length > 0 && !gameTokens.some((tok) => comb.includes(tok))) continue;
+          if (badDomains.some((d) => comb.includes(d))) continue;
+
+          const wMatch = block.match(/\bwidth="(\d+)"/i);
+          const hMatch = block.match(/\bheight="(\d+)"/i);
+          const iw = wMatch ? parseInt(wMatch[1], 10) : 0;
+          const ih = hMatch ? parseInt(hMatch[1], 10) : 0;
+          if (iw <= 0 || ih <= 0) continue;
+
+          let domainBonus = baseBonus + computeCasinoDomainBonus(comb);
+          if (comb.includes("youtube.com") || comb.includes("ytimg.com") || comb.includes("play-demo")) {
+            domainBonus -= 2.2;
+          }
+          addSpec(murl, iw, ih, domainBonus, turl);
+        } catch (e) {}
+      }
+    };
+
+    const parseGoogleHtml = (html) => {
+      // Extract external image URLs with dimensions from Google Images HTML / JSON blobs (`["https://...", height, width]`)
+      const jsonImgRegex = /\["(https?:\/\/[^"\s\\]+\.(?:jpg|jpeg|png|webp)(?:\?[^"\s\\]*)?)",\s*(\d{2,4}),\s*(\d{2,4})\]/gi;
+      let gm;
+      while ((gm = jsonImgRegex.exec(html)) !== null) {
+        const imgUrl = gm[1].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&");
+        const ih = parseInt(gm[2], 10);
+        const iw = parseInt(gm[3], 10);
+        if (iw < 100 || ih < 100) continue;
+        const lowerU = imgUrl.toLowerCase();
+        if (lowerU.includes("gstatic.com") || lowerU.includes("google.com")) continue;
+        if (badDomains.some((d) => lowerU.includes(d))) continue;
+        if (gameTokens.length > 0 && !gameTokens.some((tok) => lowerU.includes(tok))) {
+          // Only allow untokenized URLs if they come from a known popular casino CDN (like Stake's mediumrare.imgix.net)
+          if (computeCasinoDomainBonus(lowerU) < 3.0) continue;
+        }
+        const gBonus = 2.5 + computeCasinoDomainBonus(lowerU);
+        addSpec(imgUrl, iw, ih, gBonus);
+      }
+    };
+
+    const casinoBingQ = `${rawProv} ${rawGame} slot (stake OR shuffle OR roobet OR slotcatalog OR clashofslots OR askgamblers)`.trim().replace(/\s+/g, "+");
+    const generalBingQ = `${rawProv} ${rawGame} slot game`.trim().replace(/\s+/g, "+");
+    const googleQ = `${rawProv} ${rawGame} slot casino thumbnail`.trim().replace(/\s+/g, "+");
+
+    await Promise.allSettled([
+      (async () => {
+        const resp = await fetch(`https://r.jina.ai/https://www.bing.com/images/search?q=${casinoBingQ}&adlt=off`, {
+          headers: { "X-Return-Format": "html" },
+          signal: AbortSignal.timeout(4500)
+        });
+        if (resp.ok) parseBingHtml(await resp.text(), 2.2);
+      })(),
+      (async () => {
+        const resp = await fetch(`https://r.jina.ai/https://www.bing.com/images/search?q=${generalBingQ}&adlt=off`, {
+          headers: { "X-Return-Format": "html" },
+          signal: AbortSignal.timeout(4500)
+        });
+        if (resp.ok) parseBingHtml(await resp.text(), 1.6);
+      })(),
+      (async () => {
+        const resp = await fetch(`https://r.jina.ai/https://www.google.com/search?q=${googleQ}&udm=2&hl=en`, {
+          headers: { "X-Return-Format": "html" },
+          signal: AbortSignal.timeout(4500)
+        });
+        if (resp.ok) parseGoogleHtml(await resp.text());
+      })()
+    ]);
+
+    // 4. Match against local pre-bundled multi-ratio catalog (contains both Portrait 0.80 and Wide 1.78 official casino assets)
     let catalogKey = null;
     for (const key of Object.keys(GAME_ART_CATALOG)) {
       if (cleanGame.includes(key) || key.includes(cleanGame) || norm.includes(key)) {
@@ -1651,77 +2190,13 @@
         const isPortraitAsset = assetUrl.includes("portrait_");
         const estW = isPortraitAsset ? 420 : 1200;
         const estH = isPortraitAsset ? 528 : 675;
-        addSpec(assetUrl, estW, estH, 1.2);
+        addSpec(assetUrl, estW, estH, 2.0);
       }
     }
 
-    // 3. Direct Bing Ratio-Targeted Thumbnail Endpoints (sized to the exact Step 1 aspect ratio!)
-    const maxSide = 560;
-    const reqW = targetRatio <= 1.0 ? Math.round(maxSide * targetRatio) : maxSide;
-    const reqH = targetRatio <= 1.0 ? maxSide : Math.round(maxSide / targetRatio);
-    const orientWord = targetRatio < 0.90 ? "portrait" : targetRatio > 1.18 ? "banner" : "square";
-
-    const bingThumbQueries = [
-      `${rawProv} ${rawGame} slot`,
-      `${rawGame} slot Stake`,
-      `${rawGame} ${rawProv} casino game`,
-      `${rawGame} slot ${orientWord} thumbnail`
-    ];
-    bingThumbQueries.forEach((qStr, idx) => {
-      const bUrl = `https://tse${(idx % 4) + 1}.mm.bing.net/th?q=${encodeURIComponent(qStr)}&w=${reqW}&h=${reqH}&c=7&rs=1&p=0`;
-      addSpec(bUrl, reqW, reqH, 0.9 - idx * 0.1);
-    });
-
-    // 4. Live Bing Images HTML Search via r.jina.ai (extracts up to 35 real web candidates with exact w/h)
-    try {
-      const gameTokens = cleanGame.split(/\s+/).filter((w) => w.length >= 3 && !["slot", "game", "the", "and", "for"].includes(w));
-      const safeSearchQuery = `${rawGame} slot game`.trim().replace(/\s+/g, "+");
-      const jinaUrl = `https://r.jina.ai/https://www.bing.com/images/search?q=${safeSearchQuery}&adlt=off`;
-      const resp = await fetch(jinaUrl, {
-        headers: { "X-Return-Format": "html" },
-        signal: AbortSignal.timeout(4800)
-      });
-      if (resp.ok) {
-        const html = await resp.text();
-        const regex = /<a[^>]*class="iusc"[^>]*m="(\{[^"]+\})"[^>]*>[\s\S]*?<\/a>/gi;
-        let m;
-        while ((m = regex.exec(html)) !== null) {
-          try {
-            const block = m[0];
-            const meta = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
-            const murl = (meta.murl || "").trim();
-            const turl = (meta.turl || "").trim();
-            const title = (meta.t || "").trim();
-            if (!murl) continue;
-
-            const comb = `${title} ${murl}`.toLowerCase();
-            // Require game title token match AND slot/casino context so unrelated stock photos never appear
-            if (gameTokens.length > 0 && !gameTokens.some((tok) => comb.includes(tok))) continue;
-            const badDomains = ["amazon.", "shutterstock.", "alamy.", "dreamstime.", "pixabay.", "freepik.", "etsystatic.", "redbubble.", "alicdn."];
-            if (badDomains.some((d) => comb.includes(d))) continue;
-
-            const wMatch = block.match(/\bwidth="(\d+)"/i);
-            const hMatch = block.match(/\bheight="(\d+)"/i);
-            const iw = wMatch ? parseInt(wMatch[1], 10) : 0;
-            const ih = hMatch ? parseInt(hMatch[1], 10) : 0;
-            if (iw <= 0 || ih <= 0) continue;
-
-            let domainBonus = 0;
-            if (comb.includes("mediumrare.imgix.net") || comb.includes("cloudfront.net") || comb.includes("shuffle-com")) {
-              domainBonus += 1.5;
-            }
-            if (comb.includes("youtube.com") || comb.includes("ytimg.com") || comb.includes("play-demo")) {
-              domainBonus -= 2.0;
-            }
-            addSpec(murl, iw, ih, domainBonus, turl);
-          } catch (e) {}
-        }
-      }
-    } catch (e) {}
-
-    // Sort candidate specs by estimated ratio match score and decode top 10 in parallel
+    // Sort candidate specs by estimated (casino priority + aspect ratio match) score and decode top 12 in parallel
     candidateSpecs.sort((a, b) => b.estScore - a.estScore);
-    const topSpecs = candidateSpecs.slice(0, 10);
+    const topSpecs = candidateSpecs.slice(0, 12);
 
     const loadedResults = await Promise.all(
       topSpecs.map(async (spec) => {
@@ -1756,7 +2231,7 @@
       })
     );
 
-    // Filter valid, sort strictly by actual decoded aspect-ratio score, and deduplicate visually identical images
+    // Filter valid, sort strictly by actual decoded aspect-ratio + casino-priority score, and deduplicate visually identical images
     const valid = loadedResults.filter(Boolean).sort((a, b) => b.score - a.score);
     const unique = [];
     for (const item of valid) {

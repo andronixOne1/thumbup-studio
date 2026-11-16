@@ -1477,12 +1477,12 @@ async function runAiTextRemovalOnItems(singleItemIdx = null) {
       if (!it || !it.originalBase64) continue;
 
       const pct = Math.round(((step + 0.2) / indices.length) * 100);
-      const label = `Running LaMa AI Text Removal (${step + 1} of ${indices.length}): ${it.game}…`;
+      const label = `Running MI-GAN v2 HD Text Removal (${step + 1} of ${indices.length}): ${it.game}…`;
       if (progLabel) progLabel.textContent = label;
       if (progCount) progCount.textContent = `${step + 1} / ${indices.length}`;
       if (progPct) progPct.textContent = `${pct}%`;
       if (progFill) progFill.style.width = `${pct}%`;
-      if (progSub) progSub.textContent = `Segmenting character strokes & running neural LaMa ONNX inpainting…`;
+      if (progSub) progSub.textContent = `Segmenting character strokes & running MI-GAN v2 + PatchMatch HD inpainting…`;
       setGlobalProgress({ show: true, label, current: step + 1, total: indices.length, percent: pct });
       setStatus(label, true);
       await nextFrame();
